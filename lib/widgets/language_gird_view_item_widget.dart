@@ -21,7 +21,7 @@ class LanguageGridViewItemWidget extends StatelessWidget {
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
-        final delay = (index * 0.1).clamp(0.0, 1.0);
+        final delay = (index * 0.1).clamp(0.0, 0.5);
         final slideAnimation = Tween<Offset>(
           begin: Offset(0, 0.1),
           end: Offset.zero,
@@ -29,8 +29,8 @@ class LanguageGridViewItemWidget extends StatelessWidget {
           CurvedAnimation(
             parent: _animationController,
             curve: Interval(
-              delay, // Start
-              delay + 0.5, // End
+              delay,
+              (delay + 0.5).clamp(0.0, 1.0),
               curve: Curves.easeOutQuart,
             ),
           ),
@@ -40,8 +40,8 @@ class LanguageGridViewItemWidget extends StatelessWidget {
             CurvedAnimation(
               parent: _animationController,
               curve: Interval(
-                delay, // Start
-                delay + 0.5, // End
+                delay,
+                (delay + 0.5).clamp(0.0, 1.0),
                 curve: Curves.easeOut,
               ),
             ),

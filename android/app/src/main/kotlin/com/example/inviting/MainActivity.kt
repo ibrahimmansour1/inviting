@@ -1,4 +1,4 @@
-package com.example.inviting
+package com.inviting.islam
 
 import io.flutter.embedding.android.FlutterActivity
 
