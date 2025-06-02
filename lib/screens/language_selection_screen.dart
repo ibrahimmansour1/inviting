@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
 import '../widgets/languages_grid_view_widget.dart';
+import 'settings_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
-  _LanguageSelectionScreenState createState() =>
+  State<LanguageSelectionScreen> createState() =>
       _LanguageSelectionScreenState();
 }
 
@@ -69,6 +70,19 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
       appBar: AppBar(
         title: Text('Select Your Language'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
