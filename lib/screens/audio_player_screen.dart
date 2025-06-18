@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
-import '../services/audio_cache_manager.dart';
+import '../services/language_service.dart';
+import 'additional_sounds_screen.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
   final Language language;
@@ -26,7 +29,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
   late AnimationController _animationController;
   late Animation<double> _flagAnimation;
   late Animation<double> _contentAnimation;
-  final AudioCacheManager _cacheManager = AudioCacheManager();
+  final LanguageService _languageService = LanguageService();
 
   @override
   void initState() {
@@ -58,96 +61,22 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
       isLoading = true;
       hasError = false;
       errorMessage = null;
+      downloadProgress = 0.0;
     });
 
     try {
-      if (widget.language.isLocal) {
-        await _playLocalAudio();
-      } else {
-        final cached =
-            await _cacheManager.isAudioCached(widget.language.audioFileName);
-        if (cached) {
-          await _playCachedAudio();
-        } else {
-          await _downloadAndPlayAudio();
-        }
-      }
-    } on NetworkException catch (e) {
+      // Since all languages now come from backend, use LanguageService to get cached audio path
+      final cachedPath =
+          await _languageService.getCachedAudioPath(widget.language);
+      await audioPlayer.play(DeviceFileSource(cachedPath));
       setState(() {
-        hasError = true;
-        errorMessage = e.message;
+        isPlaying = true;
         isLoading = false;
       });
     } catch (e) {
       setState(() {
         hasError = true;
         errorMessage = e.toString();
-        isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _playLocalAudio() async {
-    try {
-      final audioPath = widget.language.audioPath.replaceFirst('assets/', '');
-      print('Playing local audio: $audioPath'); // Debug log
-      await audioPlayer.play(AssetSource(audioPath));
-      setState(() {
-        isPlaying = true;
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error playing local audio: $e'); // Debug log
-      setState(() {
-        hasError = true;
-        errorMessage = 'Error playing local audio: $e';
-        isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _playCachedAudio() async {
-    final cachedPath =
-        await _cacheManager.getCachedAudioPath(widget.language.audioFileName);
-    if (cachedPath != null) {
-      await audioPlayer.play(DeviceFileSource(cachedPath));
-      setState(() {
-        isPlaying = true;
-        isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _downloadAndPlayAudio() async {
-    try {
-      setState(() {
-        downloadProgress = 0.0;
-      });
-
-      final filePath = await _cacheManager.downloadAndCacheAudio(
-        widget.language.audioFileName,
-        onProgress: (progress) {
-          setState(() {
-            downloadProgress = progress;
-          });
-        },
-      );
-
-      await audioPlayer.play(DeviceFileSource(filePath));
-      setState(() {
-        isPlaying = true;
-        isLoading = false;
-      });
-    } on NetworkException catch (e) {
-      setState(() {
-        hasError = true;
-        errorMessage = e.message;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        hasError = true;
-        errorMessage = 'Failed to download and play audio: $e';
         isLoading = false;
       });
     }
@@ -206,35 +135,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
       return;
     }
 
+    setState(() {
+      isLoading = true;
+    });
+
     try {
-      if (widget.language.isLocal) {
-        final audioPath = widget.language.audioPath.replaceFirst('assets/', '');
-        print('Playing local audio from playAudio: $audioPath'); // Debug log
-        await audioPlayer.play(AssetSource(audioPath));
-      } else {
-        // For remote audio, check if cached
-        final cachedPath = await _cacheManager
-            .getCachedAudioPath(widget.language.audioFileName);
-        if (cachedPath != null) {
-          await audioPlayer.play(DeviceFileSource(cachedPath));
-        } else {
-          // Need to download first
-          setState(() {
-            isLoading = true;
-          });
-          await _downloadAndPlayAudio();
-        }
-      }
-      setState(() => isPlaying = true);
-    } on NetworkException catch (e) {
+      // Use LanguageService to get cached audio path for all languages
+      final cachedPath =
+          await _languageService.getCachedAudioPath(widget.language);
+      await audioPlayer.play(DeviceFileSource(cachedPath));
       setState(() {
-        hasError = true;
-        errorMessage = e.message;
+        isPlaying = true;
+        isLoading = false;
       });
     } catch (e) {
       setState(() {
         hasError = true;
         errorMessage = 'Error playing audio: $e';
+        isLoading = false;
       });
     }
   }
@@ -244,6 +162,139 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     audioPlayer.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  Widget _buildFlagImage() {
+    return FutureBuilder<String>(
+      future: _languageService.getCachedFlagPath(widget.language),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          if (snapshot.data!.startsWith('/')) {
+            // Local cached file
+            return Image.file(
+              File(snapshot.data!),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildFlagPlaceholder();
+              },
+            );
+          } else {
+            // Network image
+            return Image.network(
+              snapshot.data!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return _buildFlagPlaceholder();
+              },
+            );
+          }
+        } else if (snapshot.hasError) {
+          return _buildFlagPlaceholder();
+        } else {
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildSmallFlagImage() {
+    return FutureBuilder<String>(
+      future: _languageService.getCachedFlagPath(widget.language),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          if (snapshot.data!.startsWith('/')) {
+            // Local cached file
+            return Image.file(
+              File(snapshot.data!),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildSmallFlagPlaceholder();
+              },
+            );
+          } else {
+            // Network image
+            return Image.network(
+              snapshot.data!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return _buildSmallFlagPlaceholder();
+              },
+            );
+          }
+        } else if (snapshot.hasError) {
+          return _buildSmallFlagPlaceholder();
+        } else {
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 1,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildFlagPlaceholder() {
+    return Container(
+      color: Colors.grey.shade300,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.flag,
+              color: Colors.grey.shade600,
+              size: 48,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Flag',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallFlagPlaceholder() {
+    return Container(
+      color: Colors.grey.shade300,
+      child: Center(
+        child: Icon(
+          Icons.flag,
+          color: Colors.grey.shade600,
+          size: 24,
+        ),
+      ),
+    );
   }
 
   @override
@@ -278,10 +329,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  widget.language.flagPath,
-                  fit: BoxFit.cover,
-                ),
+                _buildFlagImage(),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -358,10 +406,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child: Image.asset(
-                                    widget.language.flagPath,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: _buildSmallFlagImage(),
                                 ),
                               ),
                             ),
@@ -744,6 +789,47 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               ),
                             ),
                             SizedBox(height: 24),
+                            // Additional sounds button
+                            if (widget.language.additionalSoundsCount != null &&
+                                widget.language.additionalSoundsCount! > 0)
+                              Container(
+                                width: double.infinity,
+                                margin: EdgeInsets.only(bottom: 16),
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    audioPlayer.pause();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AdditionalSoundsScreen(
+                                          language: widget.language,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(Icons.library_music),
+                                  label: Text(
+                                    'Additional Sounds (${widget.language.additionalSoundsCount})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green.shade600,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor:
+                                        Colors.green.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
                             TextButton.icon(
                               icon: Icon(Icons.language),
                               label: Text("Choose Another Language"),

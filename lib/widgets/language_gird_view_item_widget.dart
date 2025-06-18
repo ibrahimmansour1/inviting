@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
+import '../services/language_service.dart';
 import '../screens/audio_player_screen.dart';
 import 'language_card.dart';
 
@@ -8,12 +9,14 @@ class LanguageGridViewItemWidget extends StatefulWidget {
   final int index;
   final AnimationController animationController;
   final List<Language> filteredLanguages;
+  final LanguageService languageService;
 
   const LanguageGridViewItemWidget({
     super.key,
     required this.index,
     required this.animationController,
     required this.filteredLanguages,
+    required this.languageService,
   });
 
   @override
@@ -61,6 +64,7 @@ class _LanguageGridViewItemWidgetState
       },
       child: LanguageCard(
         language: widget.filteredLanguages[widget.index],
+        languageService: widget.languageService,
         onTap: () async {
           await Navigator.push(
             context,

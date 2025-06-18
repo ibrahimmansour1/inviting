@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/audio_cache_manager.dart';
+import '../services/language_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -11,6 +12,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final AudioCacheManager _cacheManager = AudioCacheManager();
+  final LanguageService _languageService = LanguageService();
   int _cacheSize = 0;
   bool _isLoading = true;
   bool _isClearing = false;
@@ -45,13 +47,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
+      // Clear both audio cache and language cache
       await _cacheManager.clearCache();
+      await _languageService.clearCache();
       await _loadCacheSize();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cache cleared successfully'),
+            content: Text('All cache cleared successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -82,7 +86,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return AlertDialog(
           title: const Text('Clear Cache'),
           content: const Text(
-            'This will delete all downloaded audio files. They will be downloaded again when needed. Are you sure you want to continue?',
+            'This will delete all cached data including downloaded audio files and language data. They will be downloaded again when needed. Are you sure you want to continue?',
           ),
           actions: <Widget>[
             TextButton(
@@ -261,25 +265,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 16),
                             _buildInfoRow(
-                              icon: Icons.language,
-                              title: 'Local Languages',
-                              value: '5 languages',
-                              subtitle:
-                                  'English, Spanish, French, German, Italian',
+                              icon: Icons.cloud,
+                              title: 'Languages',
+                              value: 'Backend-sourced',
+                              subtitle: 'All languages loaded from server',
                             ),
                             const Divider(height: 24),
                             _buildInfoRow(
-                              icon: Icons.cloud_download,
-                              title: 'Remote Languages',
-                              value: '38 languages',
-                              subtitle: 'Downloaded on demand',
+                              icon: Icons.cached,
+                              title: 'Caching',
+                              value: 'Smart caching',
+                              subtitle: 'Data cached for offline access',
                             ),
                             const Divider(height: 24),
                             _buildInfoRow(
                               icon: Icons.info_outline,
                               title: 'About',
-                              value: 'Hybrid Audio System',
-                              subtitle: 'Optimized for size and offline access',
+                              value: 'Backend-driven System',
+                              subtitle:
+                                  'Optimized for dynamic content delivery',
                             ),
                           ],
                         ),

@@ -1,15 +1,20 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
 import '../services/audio_cache_manager.dart';
+import '../services/language_service.dart';
 
 class LanguageCard extends StatefulWidget {
   final Language language;
+  final LanguageService languageService;
   final VoidCallback onTap;
 
   const LanguageCard({
     super.key,
     required this.language,
+    required this.languageService,
     required this.onTap,
   });
 
@@ -246,10 +251,64 @@ class _LanguageCardState extends State<LanguageCard> {
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                         ),
-                        child: Image.asset(
-                          widget.language.flagPath,
-                          fit: BoxFit.cover,
-                        ),
+                        child: widget.language.isLocal
+                            ? Image.asset(
+                                widget.language.flagPath,
+                                fit: BoxFit.cover,
+                              )
+                            : FutureBuilder<String>(
+                                future: widget.languageService
+                                    .getCachedFlagPath(widget.language),
+                                builder: (context, snapshot) {
+                                  if (snapshot.hasData) {
+                                    if (snapshot.data!.startsWith('/')) {
+                                      // Local cached file
+                                      return Image.file(
+                                        File(snapshot.data!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return _buildFlagPlaceholder();
+                                        },
+                                      );
+                                    } else {
+                                      // Network image
+                                      return Image.network(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                        loadingBuilder:
+                                            (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return Center(
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.green),
+                                            ),
+                                          );
+                                        },
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return _buildFlagPlaceholder();
+                                        },
+                                      );
+                                    }
+                                  } else if (snapshot.hasError) {
+                                    return _buildFlagPlaceholder();
+                                  } else {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Colors.green),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
                       ),
                       // Subtle gradient overlay
                       Container(
@@ -322,6 +381,77 @@ class _LanguageCardState extends State<LanguageCard> {
               top: 8,
               right: 8,
               child: _buildStatusIcon(),
+            ),
+            // Additional sounds badge (bottom right)
+            if (widget.language.additionalSoundsCount != null &&
+                widget.language.additionalSoundsCount! > 0)
+              Positioned(
+                bottom: 8,
+                right: 8,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.orange.shade400,
+                        Colors.orange.shade600,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.library_music,
+                        color: Colors.white,
+                        size: 12,
+                      ),
+                      SizedBox(width: 2),
+                      Text(
+                        '+${widget.language.additionalSoundsCount}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFlagPlaceholder() {
+    return Container(
+      color: Colors.grey.shade200,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.flag,
+              color: Colors.grey.shade500,
+              size: 24,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Flag',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
