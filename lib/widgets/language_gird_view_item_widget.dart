@@ -1,33 +1,43 @@
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
+import '../services/language_service.dart';
 import '../screens/audio_player_screen.dart';
 import 'language_card.dart';
 
-class LanguageGridViewItemWidget extends StatelessWidget {
+class LanguageGridViewItemWidget extends StatefulWidget {
   final int index;
+  final AnimationController animationController;
+  final List<Language> filteredLanguages;
+  final LanguageService languageService;
+
   const LanguageGridViewItemWidget({
     super.key,
     required this.index,
-    required AnimationController animationController,
+    required this.animationController,
     required this.filteredLanguages,
-  }) : _animationController = animationController;
+    required this.languageService,
+  });
 
-  final AnimationController _animationController;
-  final List<Language> filteredLanguages;
+  @override
+  State<LanguageGridViewItemWidget> createState() =>
+      _LanguageGridViewItemWidgetState();
+}
 
+class _LanguageGridViewItemWidgetState
+    extends State<LanguageGridViewItemWidget> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _animationController,
+      animation: widget.animationController,
       builder: (context, child) {
-        final delay = (index * 0.1).clamp(0.0, 0.5);
+        final delay = (widget.index * 0.1).clamp(0.0, 0.5);
         final slideAnimation = Tween<Offset>(
           begin: Offset(0, 0.1),
           end: Offset.zero,
         ).animate(
           CurvedAnimation(
-            parent: _animationController,
+            parent: widget.animationController,
             curve: Interval(
               delay,
               (delay + 0.5).clamp(0.0, 1.0),
@@ -38,7 +48,7 @@ class LanguageGridViewItemWidget extends StatelessWidget {
         return FadeTransition(
           opacity: Tween<double>(begin: 0.0, end: 1.0).animate(
             CurvedAnimation(
-              parent: _animationController,
+              parent: widget.animationController,
               curve: Interval(
                 delay,
                 (delay + 0.5).clamp(0.0, 1.0),
@@ -53,16 +63,21 @@ class LanguageGridViewItemWidget extends StatelessWidget {
         );
       },
       child: LanguageCard(
-        language: filteredLanguages[index],
-        onTap: () {
-          Navigator.push(
+        language: widget.filteredLanguages[widget.index],
+        languageService: widget.languageService,
+        onTap: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(
               builder: (context) => AudioPlayerScreen(
-                language: filteredLanguages[index],
+                language: widget.filteredLanguages[widget.index],
               ),
             ),
           );
+          // Trigger a rebuild to refresh cache status
+          if (mounted) {
+            setState(() {});
+          }
         },
       ),
     );

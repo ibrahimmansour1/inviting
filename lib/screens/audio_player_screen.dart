@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
+import '../services/language_service.dart';
+import 'additional_sounds_screen.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
   final Language language;
@@ -9,25 +13,30 @@ class AudioPlayerScreen extends StatefulWidget {
   const AudioPlayerScreen({super.key, required this.language});
 
   @override
-  _AudioPlayerScreenState createState() => _AudioPlayerScreenState();
+  State<AudioPlayerScreen> createState() => _AudioPlayerScreenState();
 }
 
 class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     with SingleTickerProviderStateMixin {
   late AudioPlayer audioPlayer;
   bool isPlaying = false;
+  bool isLoading = false;
+  bool hasError = false;
+  String? errorMessage;
+  double downloadProgress = 0.0;
   Duration duration = Duration.zero;
   Duration position = Duration.zero;
   late AnimationController _animationController;
   late Animation<double> _flagAnimation;
   late Animation<double> _contentAnimation;
+  final LanguageService _languageService = LanguageService();
 
   @override
   void initState() {
     super.initState();
     audioPlayer = AudioPlayer();
     setupAudioPlayer();
-    playAudio();
+    _initializeAudio();
 
     _animationController = AnimationController(
       vsync: this,
@@ -45,6 +54,32 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     );
 
     _animationController.forward();
+  }
+
+  void _initializeAudio() async {
+    setState(() {
+      isLoading = true;
+      hasError = false;
+      errorMessage = null;
+      downloadProgress = 0.0;
+    });
+
+    try {
+      // Since all languages now come from backend, use LanguageService to get cached audio path
+      final cachedPath =
+          await _languageService.getCachedAudioPath(widget.language);
+      await audioPlayer.play(DeviceFileSource(cachedPath));
+      setState(() {
+        isPlaying = true;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        hasError = true;
+        errorMessage = e.toString();
+        isLoading = false;
+      });
+    }
   }
 
   void setupAudioPlayer() {
@@ -68,6 +103,24 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
   }
 
+  IconData _getErrorIcon() {
+    // Show network-specific icons based on error message
+    if (errorMessage != null) {
+      final message = errorMessage!.toLowerCase();
+      if (message.contains('internet') ||
+          message.contains('connection') ||
+          message.contains('network') ||
+          message.contains('connectivity')) {
+        return Icons.wifi_off; // No internet connection
+      } else if (message.contains('timeout')) {
+        return Icons.access_time; // Connection timeout
+      } else if (message.contains('server') || message.contains('not found')) {
+        return Icons.cloud_off; // Server error
+      }
+    }
+    return Icons.error_outline; // Generic error
+  }
+
   String formatTime(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
     final minutes = twoDigits(duration.inMinutes.remainder(60));
@@ -76,12 +129,31 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
   }
 
   void playAudio() async {
+    if (hasError) {
+      // If there was an error, try to reinitialize
+      _initializeAudio();
+      return;
+    }
+
+    setState(() {
+      isLoading = true;
+    });
+
     try {
-      final audioPath = widget.language.audioPath.replaceFirst('assets/', '');
-      await audioPlayer.play(AssetSource(audioPath, mimeType: "audio/m4a"));
-      setState(() => isPlaying = true);
+      // Use LanguageService to get cached audio path for all languages
+      final cachedPath =
+          await _languageService.getCachedAudioPath(widget.language);
+      await audioPlayer.play(DeviceFileSource(cachedPath));
+      setState(() {
+        isPlaying = true;
+        isLoading = false;
+      });
     } catch (e) {
-      print('Error playing audio: $e');
+      setState(() {
+        hasError = true;
+        errorMessage = 'Error playing audio: $e';
+        isLoading = false;
+      });
     }
   }
 
@@ -90,6 +162,139 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     audioPlayer.dispose();
     _animationController.dispose();
     super.dispose();
+  }
+
+  Widget _buildFlagImage() {
+    return FutureBuilder<String>(
+      future: _languageService.getCachedFlagPath(widget.language),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          if (snapshot.data!.startsWith('/')) {
+            // Local cached file
+            return Image.file(
+              File(snapshot.data!),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildFlagPlaceholder();
+              },
+            );
+          } else {
+            // Network image
+            return Image.network(
+              snapshot.data!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return _buildFlagPlaceholder();
+              },
+            );
+          }
+        } else if (snapshot.hasError) {
+          return _buildFlagPlaceholder();
+        } else {
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildSmallFlagImage() {
+    return FutureBuilder<String>(
+      future: _languageService.getCachedFlagPath(widget.language),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          if (snapshot.data!.startsWith('/')) {
+            // Local cached file
+            return Image.file(
+              File(snapshot.data!),
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _buildSmallFlagPlaceholder();
+              },
+            );
+          } else {
+            // Network image
+            return Image.network(
+              snapshot.data!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    strokeWidth: 1,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return _buildSmallFlagPlaceholder();
+              },
+            );
+          }
+        } else if (snapshot.hasError) {
+          return _buildSmallFlagPlaceholder();
+        } else {
+          return Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 1,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildFlagPlaceholder() {
+    return Container(
+      color: Colors.grey.shade300,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.flag,
+              color: Colors.grey.shade600,
+              size: 48,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Flag',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallFlagPlaceholder() {
+    return Container(
+      color: Colors.grey.shade300,
+      child: Center(
+        child: Icon(
+          Icons.flag,
+          color: Colors.grey.shade600,
+          size: 24,
+        ),
+      ),
+    );
   }
 
   @override
@@ -104,7 +309,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
           icon: Container(
             padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.arrow_back, color: Colors.white, size: 20),
@@ -124,18 +329,15 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.asset(
-                  widget.language.flagPath,
-                  fit: BoxFit.cover,
-                ),
+                _buildFlagImage(),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.1),
-                        Colors.black.withOpacity(0.6),
+                        Colors.black.withValues(alpha: 0.1),
+                        Colors.black.withValues(alpha: 0.6),
                       ],
                     ),
                   ),
@@ -158,7 +360,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: Offset(0, -5),
                       ),
@@ -191,7 +393,8 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                   color: Colors.white,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.1),
                                       blurRadius: 8,
                                       spreadRadius: 2,
                                       offset: Offset(0, 4),
@@ -203,10 +406,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child: Image.asset(
-                                    widget.language.flagPath,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  child: _buildSmallFlagImage(),
                                 ),
                               ),
                             ),
@@ -229,6 +429,77 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               ),
                               textAlign: TextAlign.center,
                             ),
+                            // Status indicator
+                            if (isLoading ||
+                                hasError ||
+                                (!widget.language.isLocal &&
+                                    downloadProgress > 0 &&
+                                    downloadProgress < 1))
+                              Container(
+                                margin: EdgeInsets.only(top: 16),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: hasError
+                                      ? Colors.red.shade100
+                                      : isLoading
+                                          ? Colors.blue.shade100
+                                          : Colors.green.shade100,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: hasError
+                                        ? Colors.red.shade300
+                                        : isLoading
+                                            ? Colors.blue.shade300
+                                            : Colors.green.shade300,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (hasError)
+                                      Icon(_getErrorIcon(),
+                                          color: Colors.red.shade700, size: 16)
+                                    else if (isLoading)
+                                      SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          valueColor: AlwaysStoppedAnimation(
+                                              Colors.blue.shade700),
+                                        ),
+                                      )
+                                    else
+                                      Icon(Icons.download,
+                                          color: Colors.green.shade700,
+                                          size: 16),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        hasError
+                                            ? 'Error: ${errorMessage ?? "Unknown error"}'
+                                            : isLoading
+                                                ? downloadProgress > 0
+                                                    ? 'Downloading ${(downloadProgress * 100).toInt()}%'
+                                                    : 'Loading...'
+                                                : widget.language.isLocal
+                                                    ? 'Local audio'
+                                                    : 'Downloaded',
+                                        style: TextStyle(
+                                          color: hasError
+                                              ? Colors.red.shade700
+                                              : isLoading
+                                                  ? Colors.blue.shade700
+                                                  : Colors.green.shade700,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             SizedBox(height: 36),
                             // Audio player controls
                             Container(
@@ -245,7 +516,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
+                                    color: Colors.black.withValues(alpha: 0.05),
                                     blurRadius: 10,
                                     spreadRadius: 0,
                                     offset: Offset(0, 4),
@@ -272,7 +543,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                       inactiveTrackColor: Colors.green.shade100,
                                       thumbColor: Colors.white,
                                       overlayColor:
-                                          Colors.green.withOpacity(0.2),
+                                          Colors.green.withValues(alpha: 0.2),
                                     ),
                                     child: Column(
                                       children: [
@@ -395,6 +666,15 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                       // Play/Pause
                                       GestureDetector(
                                         onTap: () async {
+                                          if (isLoading) {
+                                            return; // Don't allow interaction while loading
+                                          }
+
+                                          if (hasError) {
+                                            _initializeAudio(); // Retry on error
+                                            return;
+                                          }
+
                                           if (isPlaying) {
                                             await audioPlayer.pause();
                                             setState(() => isPlaying = false);
@@ -402,14 +682,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                             if (audioPlayer.state ==
                                                 PlayerState.paused) {
                                               await audioPlayer.resume();
+                                              setState(() => isPlaying = true);
                                             } else {
-                                              final audioPath = widget
-                                                  .language.audioPath
-                                                  .replaceFirst('assets/', '');
-                                              await audioPlayer
-                                                  .play(AssetSource(audioPath));
+                                              playAudio();
                                             }
-                                            setState(() => isPlaying = true);
                                           }
                                         },
                                         child: Container(
@@ -419,29 +695,43 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                             gradient: LinearGradient(
                                               begin: Alignment.topLeft,
                                               end: Alignment.bottomRight,
-                                              colors: [
-                                                Colors.green.shade400,
-                                                Colors.green.shade700,
-                                              ],
+                                              colors: hasError
+                                                  ? [
+                                                      Colors.red.shade400,
+                                                      Colors.red.shade700
+                                                    ]
+                                                  : [
+                                                      Colors.green.shade400,
+                                                      Colors.green.shade700
+                                                    ],
                                             ),
                                             shape: BoxShape.circle,
                                             boxShadow: [
                                               BoxShadow(
-                                                color: Colors.green
-                                                    .withOpacity(0.3),
+                                                color: (hasError
+                                                        ? Colors.red
+                                                        : Colors.green)
+                                                    .withValues(alpha: 0.3),
                                                 spreadRadius: 2,
                                                 blurRadius: 10,
                                                 offset: Offset(0, 4),
                                               ),
                                             ],
                                           ),
-                                          child: Icon(
-                                            isPlaying
-                                                ? Icons.pause
-                                                : Icons.play_arrow,
-                                            color: Colors.white,
-                                            size: 40,
-                                          ),
+                                          child: isLoading
+                                              ? CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 3,
+                                                )
+                                              : Icon(
+                                                  hasError
+                                                      ? Icons.refresh
+                                                      : (isPlaying
+                                                          ? Icons.pause
+                                                          : Icons.play_arrow),
+                                                  color: Colors.white,
+                                                  size: 40,
+                                                ),
                                         ),
                                       ),
                                       // Forward 10 seconds
@@ -499,6 +789,47 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               ),
                             ),
                             SizedBox(height: 24),
+                            // Additional sounds button
+                            if (widget.language.additionalSoundsCount != null &&
+                                widget.language.additionalSoundsCount! > 0)
+                              Container(
+                                width: double.infinity,
+                                margin: EdgeInsets.only(bottom: 16),
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    audioPlayer.pause();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            AdditionalSoundsScreen(
+                                          language: widget.language,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(Icons.library_music),
+                                  label: Text(
+                                    'Additional Sounds (${widget.language.additionalSoundsCount})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green.shade600,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor:
+                                        Colors.green.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
                             TextButton.icon(
                               icon: Icon(Icons.language),
                               label: Text("Choose Another Language"),
