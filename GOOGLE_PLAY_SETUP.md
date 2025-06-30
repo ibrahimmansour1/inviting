@@ -1,8 +1,8 @@
-# Google Play Store Upload Guide for Inviting App
+# Google Play Store Upload Guide for Call to islam App
 
 ## 🔐 Step 1: Update Keystore Configuration
 
-You need to update the `/Users/ibrahim/Documents/contributions/inviting/android/key.properties` file with the actual passwords you used when creating the keystore.
+You need to update the `/Users/ibrahim/Documents/contributions/call_to_islam/android/key.properties` file with the actual passwords you used when creating the keystore.
 
 **IMPORTANT**: Replace the placeholder values in `android/key.properties`:
 
@@ -28,14 +28,16 @@ This will create the `.aab` file at: `build/app/outputs/bundle/release/app-relea
 ## 🏪 Step 3: Google Play Console Setup
 
 1. **Create Google Play Developer Account**
+
    - Go to https://play.google.com/console
    - Pay the one-time $25 registration fee
    - Complete account verification
 
 2. **Create New App**
+
    - Click "Create app"
    - Fill in app details:
-     - App name: "Inviting"
+     - App name: "Call to islam"
      - Default language: Choose your preferred language
      - App or game: App
      - Free or paid: Choose based on your monetization strategy
@@ -50,6 +52,7 @@ This will create the `.aab` file at: `build/app/outputs/bundle/release/app-relea
 ## 📋 Step 4: Store Listing
 
 ### Required Assets:
+
 - **App icon**: ✅ Already configured (512x512 PNG)
 - **Feature graphic**: 1024x500 PNG
 - **Screenshots**: At least 2 phone screenshots (16:9 or 9:16 aspect ratio)
@@ -62,7 +65,7 @@ This will create the `.aab` file at: `build/app/outputs/bundle/release/app-relea
 "Learn languages with native audio pronunciation and interactive exercises."
 
 **Full Description:**
-"Inviting is an interactive language learning app that helps you master pronunciation with native speaker audio. Perfect for beginners and advanced learners alike.
+"Call to islam is an interactive language learning app that helps you master pronunciation with native speaker audio. Perfect for beginners and advanced learners alike.
 
 Features:
 • Native speaker audio for authentic pronunciation
@@ -71,11 +74,12 @@ Features:
 • Clean, user-friendly interface
 • Offline audio playback capability
 
-Whether you're preparing for travel, business, or personal enrichment, Inviting makes language learning engaging and effective."
+Whether you're preparing for travel, business, or personal enrichment, Call to islam makes language learning engaging and effective."
 
 ## 🚀 Step 5: Release Management
 
 1. **Upload App Bundle**
+
    - Go to "Release" → "Production"
    - Upload your `app-release.aab` file
    - Add release notes
@@ -86,7 +90,7 @@ Whether you're preparing for travel, business, or personal enrichment, Inviting 
 
 ## 🔧 Current App Configuration
 
-- **Package Name**: `com.inviting.islam`
+- **Package Name**: `com.calltoislam.app`
 - **Version**: 1.0.0+1
 - **Min SDK**: 21 (Android 5.0)
 - **Target SDK**: Latest Flutter target
@@ -119,7 +123,8 @@ flutter install --release
 - ✅ `pubspec.yaml` - App metadata and launcher icons
 - ✅ `~/upload-keystore.jks` - Signing keystore (keep this safe!)
 
-**⚠️ SECURITY NOTE**: 
+**⚠️ SECURITY NOTE**:
+
 - Never commit `key.properties` or keystore files to version control
 - Back up your keystore file securely - losing it means you can't update your app
 - Keep passwords secure and don't share them

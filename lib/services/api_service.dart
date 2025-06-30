@@ -26,8 +26,6 @@ class ApiService {
       responseHeader: false,
     ));
   }
-
-  // Get all languages from the server
   Future<List<Language>> getLanguages() async {
     try {
       final response = await _dio.get('/languages');
@@ -45,8 +43,6 @@ class ApiService {
       throw Exception('Unexpected error: $e');
     }
   }
-
-  // Add a new language to the server
   Future<Language> addLanguage({
     required String name,
     required String nativeName,
@@ -55,14 +51,13 @@ class ApiService {
   }) async {
     try {
       FormData formData = FormData.fromMap({
-        'english_name': name, // Updated field name
-        'native_name': nativeName, // Updated field name
+        'english_name': name,
+        'native_name': nativeName,
         'flag': await MultipartFile.fromFile(
           flagFile.path,
           filename: flagFile.path.split('/').last,
         ),
         'sound': await MultipartFile.fromFile(
-          // Updated field name
           audioFile.path,
           filename: audioFile.path.split('/').last,
         ),
@@ -100,9 +95,8 @@ class ApiService {
     try {
       Map<String, dynamic> formFields = {};
 
-      if (name != null) formFields['english_name'] = name; // Updated field name
-      if (nativeName != null)
-        formFields['native_name'] = nativeName; // Updated field name
+      if (name != null) formFields['english_name'] = name;
+      if (nativeName != null) formFields['native_name'] = nativeName;
 
       if (flagFile != null) {
         formFields['flag'] = await MultipartFile.fromFile(

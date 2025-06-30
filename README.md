@@ -1,4 +1,4 @@
-# inviting
+# Call to islam
 
 A new Flutter project.
 
