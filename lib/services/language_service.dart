@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../constants.dart';
 import '../models/language_model.dart';
 import 'api_service.dart';
 
@@ -85,14 +86,10 @@ class LanguageService {
 
   // Clear cached languages
   Future<void> clearCache() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_cacheKey);
-      await prefs.remove('${_cacheKey}_timestamp');
-      print('Language cache cleared');
-    } catch (e) {
-      print('Failed to clear cache: $e');
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_cacheKey);
+    await prefs.remove('${_cacheKey}_timestamp');
+    await _apiService.clearCachedFiles();
   }
 
   // Check if cached languages are available
@@ -206,38 +203,30 @@ class LanguageService {
 
   // Get a cached audio file path for all languages
   Future<String> getCachedAudioPath(Language language) async {
-    try {
-      // For all languages, download and cache the audio file from backend
-      final baseUrl =
-          'http://ip-185-177-73-30-121929.vps.hosted-by-mvps.net'; // Use your server URL
-      final remoteUrl = language.audioPath.startsWith('http')
-          ? language.audioPath
-          : '$baseUrl${language.audioPath}';
+    final remoteUrl = language.audioPath.startsWith('http')
+        ? language.audioPath
+        : '${AppConstants.baseUrl}${language.audioPath}';
 
-      return await _apiService.downloadAndCacheFile(
-        remoteUrl,
-        language.audioFileName,
-      );
-    } catch (e) {
-      throw Exception('Failed to cache audio file: $e');
-    }
+    return await _apiService.downloadAndCacheFile(
+      remoteUrl,
+      language.audioFileName,
+    );
+  }
+
+  // Check if audio is already downloaded (cached)
+  Future<bool> isAudioCached(Language language) async {
+    if (language.isLocal) return true;
+    return await _apiService.isFileCached(language.audioFileName);
   }
 
   // Get a cached flag image path for all languages
   Future<String> getCachedFlagPath(Language language) async {
-    try {
-      // For all languages, download and cache the flag image from backend
-      final baseUrl =
-          'http://ip-185-177-73-30-121929.vps.hosted-by-mvps.net'; // Use your server URL
-      final remoteUrl = language.flagPath.startsWith('http')
-          ? language.flagPath
-          : '$baseUrl${language.flagPath}';
-      final filename = language.flagPath.split('/').last;
+    final remoteUrl = language.flagPath.startsWith('http')
+        ? language.flagPath
+        : '${AppConstants.baseUrl}${language.flagPath}';
+    final filename = language.flagPath.split('/').last;
 
-      return await _apiService.downloadAndCacheFile(remoteUrl, filename);
-    } catch (e) {
-      throw Exception('Failed to cache flag image: $e');
-    }
+    return await _apiService.downloadAndCacheFile(remoteUrl, filename);
   }
 
   // Check if server is available
@@ -281,14 +270,10 @@ class LanguageService {
   // Get cached additional sound file path
   Future<String> getCachedAdditionalSoundPath(
       String soundUrl, String filename) async {
-    try {
-      final baseUrl = 'http://ip-185-177-73-30-121929.vps.hosted-by-mvps.net';
-      final remoteUrl =
-          soundUrl.startsWith('http') ? soundUrl : '$baseUrl$soundUrl';
+    final remoteUrl = soundUrl.startsWith('http')
+        ? soundUrl
+        : '${AppConstants.baseUrl}$soundUrl';
 
-      return await _apiService.downloadAndCacheFile(remoteUrl, filename);
-    } catch (e) {
-      throw Exception('Failed to cache additional sound file: $e');
-    }
+    return await _apiService.downloadAndCacheFile(remoteUrl, filename);
   }
 }

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
-import '../services/language_service.dart';
 import '../screens/audio_player_screen.dart';
+import '../services/language_service.dart';
 import 'language_card.dart';
 
 class LanguageGridViewItemWidget extends StatefulWidget {
@@ -26,6 +26,8 @@ class LanguageGridViewItemWidget extends StatefulWidget {
 
 class _LanguageGridViewItemWidgetState
     extends State<LanguageGridViewItemWidget> {
+  int _refreshKey = 0;
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -63,6 +65,8 @@ class _LanguageGridViewItemWidgetState
         );
       },
       child: LanguageCard(
+        key: ValueKey(
+            '${widget.filteredLanguages[widget.index].id}_$_refreshKey'),
         language: widget.filteredLanguages[widget.index],
         languageService: widget.languageService,
         onTap: () async {
@@ -76,7 +80,9 @@ class _LanguageGridViewItemWidgetState
           );
           // Trigger a rebuild to refresh cache status
           if (mounted) {
-            setState(() {});
+            setState(() {
+              _refreshKey++; // Change the key to force LanguageCard to rebuild
+            });
           }
         },
       ),

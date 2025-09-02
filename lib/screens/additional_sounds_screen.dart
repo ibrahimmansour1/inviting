@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/additional_sound_model.dart';
 import '../models/language_model.dart';
@@ -166,6 +167,34 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$minutes:$seconds";
+  }
+
+  Future<void> _shareAdditionalSound(AdditionalSound sound) async {
+    try {
+      // Get the cached audio file path
+      final cachedPath = await _languageService.getCachedAdditionalSoundPath(
+        sound.file,
+        sound.fileName,
+      );
+
+      // Share the audio file
+      await Share.shareXFiles(
+        [XFile(cachedPath)],
+        text:
+            'Listen to "${sound.name}" from ${widget.language.name} (${widget.language.nativeName})',
+        subject: 'Additional Sound - ${sound.name}',
+      );
+    } catch (e) {
+      // Show error message if sharing fails
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share audio: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -529,6 +558,16 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
                       ),
                     ],
                   ),
+                ),
+                // Share button
+                IconButton(
+                  onPressed: () => _shareAdditionalSound(sound),
+                  icon: Icon(
+                    Icons.share,
+                    size: 20,
+                    color: Colors.grey.shade600,
+                  ),
+                  tooltip: 'Share Audio',
                 ),
                 // Status indicator
                 if (isCurrentlyPlaying)

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/language_model.dart';
 import '../services/language_service.dart';
@@ -23,7 +24,6 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
   bool isLoading = false;
   bool hasError = false;
   String? errorMessage;
-  double downloadProgress = 0.0;
   Duration duration = Duration.zero;
   Duration position = Duration.zero;
   late AnimationController _animationController;
@@ -61,17 +61,26 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
       isLoading = true;
       hasError = false;
       errorMessage = null;
-      downloadProgress = 0.0;
     });
 
     try {
-      // Since all languages now come from backend, use LanguageService to get cached audio path
+      // Check if audio is already cached
+      final isCached = await _languageService.isAudioCached(widget.language);
+
+      // Show download message if not cached
+      if (!isCached && !widget.language.isLocal) {
+        setState(() {
+          errorMessage = 'Downloading audio...';
+        });
+      }
+
       final cachedPath =
           await _languageService.getCachedAudioPath(widget.language);
       await audioPlayer.play(DeviceFileSource(cachedPath));
       setState(() {
         isPlaying = true;
         isLoading = false;
+        errorMessage = null;
       });
     } catch (e) {
       setState(() {
@@ -126,6 +135,32 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
     return "$minutes:$seconds";
+  }
+
+  Future<void> _shareAudio() async {
+    try {
+      // Get the cached audio file path
+      final cachedPath =
+          await _languageService.getCachedAudioPath(widget.language);
+
+      // Share the audio file
+      await Share.shareXFiles(
+        [XFile(cachedPath)],
+        text:
+            'Listen to "${widget.language.name}" pronunciation (${widget.language.nativeName})',
+        subject: 'Audio pronunciation - ${widget.language.name}',
+      );
+    } catch (e) {
+      // Show error message if sharing fails
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to share audio: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void playAudio() async {
@@ -319,6 +354,19 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
             Navigator.pop(context);
           },
         ),
+        actions: [
+          IconButton(
+            icon: Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.share, color: Colors.white, size: 20),
+            ),
+            onPressed: _shareAudio,
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -430,11 +478,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               textAlign: TextAlign.center,
                             ),
                             // Status indicator
-                            if (isLoading ||
-                                hasError ||
-                                (!widget.language.isLocal &&
-                                    downloadProgress > 0 &&
-                                    downloadProgress < 1))
+                            if (isLoading || hasError)
                               Container(
                                 margin: EdgeInsets.only(top: 16),
                                 padding: EdgeInsets.symmetric(
@@ -480,9 +524,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                         hasError
                                             ? 'Error: ${errorMessage ?? "Unknown error"}'
                                             : isLoading
-                                                ? downloadProgress > 0
-                                                    ? 'Downloading ${(downloadProgress * 100).toInt()}%'
-                                                    : 'Loading...'
+                                                ? errorMessage ?? 'Loading...'
                                                 : widget.language.isLocal
                                                     ? 'Local audio'
                                                     : 'Downloaded',
@@ -751,6 +793,43 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                           Icons.forward_10,
                                           color: Colors.green.shade700,
                                           size: 30,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 20),
+                                  // Share button row
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      MaterialButton(
+                                        onPressed: _shareAudio,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(30),
+                                        ),
+                                        color: Colors.green,
+                                        elevation: 2,
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 24, vertical: 12),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.share,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                            SizedBox(width: 8),
+                                            Text(
+                                              'Share Audio',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ],

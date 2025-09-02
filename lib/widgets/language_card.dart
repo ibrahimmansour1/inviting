@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
-import '../services/audio_cache_manager.dart';
 import '../services/language_service.dart';
 
 class LanguageCard extends StatefulWidget {
@@ -23,10 +22,7 @@ class LanguageCard extends StatefulWidget {
 }
 
 class _LanguageCardState extends State<LanguageCard> {
-  final AudioCacheManager _cacheManager = AudioCacheManager();
   bool _isCached = false;
-  bool _isDownloading = false;
-  bool _hasNetworkError = false;
 
   @override
   void initState() {
@@ -37,53 +33,24 @@ class _LanguageCardState extends State<LanguageCard> {
   @override
   void didUpdateWidget(LanguageCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.language != widget.language) {
+    // Refresh cache status when widget updates
+    if (oldWidget.language.id != widget.language.id) {
       _checkCacheStatus();
     }
   }
 
   void _checkCacheStatus() async {
-    if (!widget.language.isLocal) {
-      final cached =
-          await _cacheManager.isAudioCached(widget.language.audioFileName);
-      final downloading =
-          _cacheManager.isDownloading(widget.language.audioFileName);
-
-      // Check network connectivity for remote languages
-      if (!cached && !downloading) {
-        try {
-          final hasNetwork = await _cacheManager.hasInternetConnection();
-          if (mounted) {
-            setState(() {
-              _hasNetworkError = !hasNetwork;
-            });
-          }
-        } catch (e) {
-          if (mounted) {
-            setState(() {
-              _hasNetworkError = true;
-            });
-          }
-        }
-      }
-
-      if (mounted) {
-        setState(() {
-          _isCached = cached;
-          _isDownloading = downloading;
-        });
-      }
+    final cached = await widget.languageService.isAudioCached(widget.language);
+    if (mounted) {
+      setState(() {
+        _isCached = cached;
+      });
     }
   }
 
-  // Public method to refresh cache status
-  void refreshCacheStatus() {
-    _checkCacheStatus();
-  }
-
   Widget _buildStatusIcon() {
-    if (widget.language.isLocal) {
-      // Local audio - show play icon
+    if (widget.language.isLocal || _isCached) {
+      // Local or already downloaded - show play icon
       return Container(
         padding: EdgeInsets.all(6),
         decoration: BoxDecoration(
@@ -92,61 +59,16 @@ class _LanguageCardState extends State<LanguageCard> {
         ),
         child: Icon(
           Icons.play_circle_outline,
-          color: Colors.white,
-          size: 18,
-        ),
-      );
-    } else if (_isDownloading) {
-      // Downloading - show progress
-      return Container(
-        padding: EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-          ),
-        ),
-      );
-    } else if (_isCached) {
-      // Cached - show play icon with green background
-      return Container(
-        padding: EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Icon(
-          Icons.play_circle_outline,
-          color: Colors.white,
-          size: 18,
-        ),
-      );
-    } else if (_hasNetworkError) {
-      // No network - show network error icon
-      return Container(
-        padding: EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Icon(
-          Icons.wifi_off,
           color: Colors.white,
           size: 18,
         ),
       );
     } else {
-      // Not cached - show download icon
+      // Not downloaded - show download icon
       return Container(
         padding: EdgeInsets.all(6),
         decoration: BoxDecoration(
-          color: Colors.blue.withValues(alpha: 0.8),
+          color: Colors.orange.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
@@ -183,23 +105,7 @@ class _LanguageCardState extends State<LanguageCard> {
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
-          'OFFLINE',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } else if (_hasNetworkError) {
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.red.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          'NO WIFI',
+          'DOWNLOADED',
           style: TextStyle(
             color: Colors.white,
             fontSize: 10,
@@ -211,11 +117,11 @@ class _LanguageCardState extends State<LanguageCard> {
       return Container(
         padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
         decoration: BoxDecoration(
-          color: Colors.blue.withValues(alpha: 0.8),
+          color: Colors.orange.withValues(alpha: 0.8),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Text(
-          'ONLINE',
+          'DOWNLOAD',
           style: TextStyle(
             color: Colors.white,
             fontSize: 10,
@@ -278,8 +184,9 @@ class _LanguageCardState extends State<LanguageCard> {
                                         fit: BoxFit.cover,
                                         loadingBuilder:
                                             (context, child, loadingProgress) {
-                                          if (loadingProgress == null)
+                                          if (loadingProgress == null) {
                                             return child;
+                                          }
                                           return Center(
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,

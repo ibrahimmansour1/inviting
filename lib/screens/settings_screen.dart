@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../services/audio_cache_manager.dart';
 import '../services/language_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -11,34 +10,12 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  final AudioCacheManager _cacheManager = AudioCacheManager();
   final LanguageService _languageService = LanguageService();
-  int _cacheSize = 0;
-  bool _isLoading = true;
   bool _isClearing = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCacheSize();
-  }
-
-  Future<void> _loadCacheSize() async {
-    try {
-      final size = await _cacheManager.getCacheSize();
-      if (mounted) {
-        setState(() {
-          _cacheSize = size;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
   }
 
   Future<void> _clearCache() async {
@@ -47,15 +24,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
 
     try {
-      // Clear both audio cache and language cache
-      await _cacheManager.clearCache();
       await _languageService.clearCache();
-      await _loadCacheSize();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('All cache cleared successfully'),
+            content: Text('Cache cleared successfully'),
             backgroundColor: Colors.green,
           ),
         );
@@ -180,17 +154,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Cache Size',
+                                          'Cache Management',
                                           style: Theme.of(context)
                                               .textTheme
                                               .titleMedium,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
-                                          _isLoading
-                                              ? 'Calculating...'
-                                              : _cacheManager
-                                                  .formatCacheSize(_cacheSize),
+                                          'Clear cached files and data',
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodyMedium
@@ -201,13 +172,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ],
                                     ),
                                   ),
-                                  if (_isLoading)
-                                    const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    ),
                                 ],
                               ),
                             ),
@@ -218,9 +182,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: _isClearing || _cacheSize == 0
-                                    ? null
-                                    : _showClearCacheDialog,
+                                onPressed:
+                                    _isClearing ? null : _showClearCacheDialog,
                                 icon: _isClearing
                                     ? const SizedBox(
                                         width: 16,

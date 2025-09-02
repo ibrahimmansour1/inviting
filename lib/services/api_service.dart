@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:call_to_islam/constants.dart';
 import 'package:dio/dio.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -7,11 +8,9 @@ import '../models/language_model.dart';
 
 class ApiService {
   late final Dio _dio;
-  static const String baseUrl = 'https://conveyislam.mubark.org/api/languages';
-
   ApiService() {
     _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
+      baseUrl: AppConstants.baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       sendTimeout: const Duration(seconds: 30),
@@ -158,31 +157,36 @@ class ApiService {
 
   // Download and cache a remote file
   Future<String> downloadAndCacheFile(String remoteUrl, String filename) async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final filePath = '${directory.path}/cached_files/$filename';
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/cached_files/$filename';
+    final file = File(filePath);
 
-      // Create directory if it doesn't exist
-      final file = File(filePath);
-      await file.parent.create(recursive: true);
-
-      // Download the file
-      await _dio.download(
-        remoteUrl,
-        filePath,
-        onReceiveProgress: (received, total) {
-          if (total != -1) {
-            print(
-                'Download progress: ${(received / total * 100).toStringAsFixed(0)}%');
-          }
-        },
-      );
-
+    // Return existing file if already cached
+    if (await file.exists()) {
       return filePath;
-    } on DioException catch (e) {
-      throw Exception('Download error: ${_handleDioError(e)}');
-    } catch (e) {
-      throw Exception('File caching error: $e');
+    }
+
+    // Create directory if it doesn't exist
+    await file.parent.create(recursive: true);
+
+    // Download the file
+    await _dio.download(remoteUrl, filePath);
+    return filePath;
+  }
+
+  // Check if a file is already cached
+  Future<bool> isFileCached(String filename) async {
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/cached_files/$filename';
+    return File(filePath).exists();
+  }
+
+  // Clear cached files
+  Future<void> clearCachedFiles() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final cacheDir = Directory('${directory.path}/cached_files');
+    if (await cacheDir.exists()) {
+      await cacheDir.delete(recursive: true);
     }
   }
 
