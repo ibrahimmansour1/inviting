@@ -808,7 +808,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                       ),
                                     );
                                   },
-                                  icon: Icon(Icons.library_music),
+                                  icon: Icon(
+                                    Icons.library_music,
+                                    color: Colors.white,
+                                  ),
                                   label: Text(
                                     'Additional Sounds (${widget.language.additionalSoundsCount})',
                                     style: TextStyle(

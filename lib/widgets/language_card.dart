@@ -348,7 +348,7 @@ class _LanguageCardState extends State<LanguageCard> {
                           widget.language.nativeName,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: 14,
                             color: Colors.green.shade800,
                           ),
                           textAlign: TextAlign.center,
