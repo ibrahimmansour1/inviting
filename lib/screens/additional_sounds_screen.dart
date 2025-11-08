@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/additional_sound_model.dart';
 import '../models/language_model.dart';
@@ -91,6 +92,7 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
     });
 
     audioPlayer.onPlayerComplete.listen((event) {
+      WakelockPlus.disable();
       setState(() {
         isPlaying = false;
         currentlyPlayingSound = null;
@@ -129,6 +131,7 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
     // Stop current playback
     if (isPlaying) {
       await audioPlayer.stop();
+      WakelockPlus.disable();
     }
 
     setState(() {
@@ -143,6 +146,7 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
       );
 
       await audioPlayer.play(DeviceFileSource(cachedPath));
+      WakelockPlus.enable();
       setState(() {
         isPlaying = true;
         isLoadingAudio = false;
@@ -199,6 +203,7 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     audioPlayer.dispose();
     _fadeController.dispose();
     _slideController.dispose();
@@ -224,6 +229,7 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
           ),
           onPressed: () {
             audioPlayer.stop();
+            WakelockPlus.disable();
             Navigator.pop(context);
           },
         ),
@@ -362,7 +368,6 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
         position: _slideAnimation,
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(24),
               child: Column(
@@ -387,7 +392,6 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
                 ],
               ),
             ),
-            // Sounds list
             Expanded(
               child: Container(
                 decoration: const BoxDecoration(
@@ -490,9 +494,11 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
                   onTap: () async {
                     if (isCurrentlyPlaying && isPlaying) {
                       await audioPlayer.pause();
+                      WakelockPlus.disable();
                       setState(() => isPlaying = false);
                     } else if (isCurrentlyPlaying && !isPlaying) {
                       await audioPlayer.resume();
+                      WakelockPlus.enable();
                       setState(() => isPlaying = true);
                     } else {
                       await _playAdditionalSound(sound);
@@ -569,7 +575,6 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
                   ),
                   tooltip: 'Share Audio',
                 ),
-                // Status indicator
                 if (isCurrentlyPlaying)
                   Container(
                     padding:
@@ -642,7 +647,6 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
                       ),
                     ),
                   ),
-                  // Time progress
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -664,7 +668,6 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
                       ),
                     ],
                   ),
-                  // Slider
                   SliderTheme(
                     data: SliderThemeData(
                       trackHeight: 3,

@@ -1,11 +1,16 @@
-import 'dart:io';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../models/language_model.dart';
 import '../services/language_service.dart';
+import '../widgets/audio_player/audio_controls_widget.dart';
+import '../widgets/audio_player/audio_status_indicator.dart';
+import '../widgets/audio_player/connect_share_section_widget.dart';
+import '../widgets/audio_player/flag_image_widget.dart';
+import '../widgets/audio_player/motivational_quote_widget.dart';
 import 'additional_sounds_screen.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
@@ -77,6 +82,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
       final cachedPath =
           await _languageService.getCachedAudioPath(widget.language);
       await audioPlayer.play(DeviceFileSource(cachedPath));
+      WakelockPlus.enable();
       setState(() {
         isPlaying = true;
         isLoading = false;
@@ -105,6 +111,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
 
     audioPlayer.onPlayerComplete.listen((event) {
+      WakelockPlus.disable();
       setState(() {
         isPlaying = false;
         position = Duration.zero;
@@ -112,10 +119,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
   }
 
-  IconData _getErrorIcon() {
+  IconData _getErrorIcon(String? errorMsg) {
     // Show network-specific icons based on error message
-    if (errorMessage != null) {
-      final message = errorMessage!.toLowerCase();
+    if (errorMsg != null) {
+      final message = errorMsg.toLowerCase();
       if (message.contains('internet') ||
           message.contains('connection') ||
           message.contains('network') ||
@@ -163,6 +170,28 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     }
   }
 
+  Future<void> _openWhatsApp(String phoneNumber) async {
+    try {
+      // Remove any non-digit characters except the leading +
+      String cleanedNumber = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+      final url = Uri.parse('https://wa.me/$cleanedNumber');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch WhatsApp';
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open WhatsApp: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void playAudio() async {
     if (hasError) {
       // If there was an error, try to reinitialize
@@ -179,6 +208,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
       final cachedPath =
           await _languageService.getCachedAudioPath(widget.language);
       await audioPlayer.play(DeviceFileSource(cachedPath));
+      WakelockPlus.enable();
       setState(() {
         isPlaying = true;
         isLoading = false;
@@ -194,146 +224,70 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
 
   @override
   void dispose() {
+    WakelockPlus.disable();
     audioPlayer.dispose();
     _animationController.dispose();
     super.dispose();
   }
 
-  Widget _buildFlagImage() {
-    return FutureBuilder<String>(
-      future: _languageService.getCachedFlagPath(widget.language),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          if (snapshot.data!.startsWith('/')) {
-            // Local cached file
-            return Image.file(
-              File(snapshot.data!),
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _buildFlagPlaceholder();
-              },
-            );
-          } else {
-            // Network image
-            return Image.network(
-              snapshot.data!,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return _buildFlagPlaceholder();
-              },
-            );
-          }
-        } else if (snapshot.hasError) {
-          return _buildFlagPlaceholder();
-        } else {
-          return Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-          );
-        }
-      },
-    );
+  // Parse motivational text to extract phone number and actual message
+  Map<String, String?> _parseMotivationalText() {
+    String? phoneNumber;
+    String? message;
+
+    if (widget.language.motivationalText != null &&
+        widget.language.motivationalText!.isNotEmpty) {
+      final text = widget.language.motivationalText!.trim();
+
+      // Look for phone number pattern at the beginning (starts with +)
+      final phoneRegex = RegExp(r'^\+\d+');
+      final match = phoneRegex.firstMatch(text);
+
+      if (match != null) {
+        phoneNumber = match.group(0);
+        // Get the message part (everything after the phone number)
+        message = text.substring(match.end).trim();
+      } else {
+        // If no phone number found, treat entire text as message
+        message = text;
+      }
+    }
+
+    return {'phoneNumber': phoneNumber, 'message': message};
   }
 
-  Widget _buildSmallFlagImage() {
-    return FutureBuilder<String>(
-      future: _languageService.getCachedFlagPath(widget.language),
-      builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          if (snapshot.data!.startsWith('/')) {
-            // Local cached file
-            return Image.file(
-              File(snapshot.data!),
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return _buildSmallFlagPlaceholder();
-              },
-            );
-          } else {
-            // Network image
-            return Image.network(
-              snapshot.data!,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 1,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return _buildSmallFlagPlaceholder();
-              },
-            );
-          }
-        } else if (snapshot.hasError) {
-          return _buildSmallFlagPlaceholder();
-        } else {
-          return Center(
-            child: CircularProgressIndicator(
-              strokeWidth: 1,
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
-            ),
-          );
-        }
-      },
-    );
-  }
+  void _handlePlayPause() async {
+    if (isLoading) {
+      return;
+    }
 
-  Widget _buildFlagPlaceholder() {
-    return Container(
-      color: Colors.grey.shade300,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.flag,
-              color: Colors.grey.shade600,
-              size: 48,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Flag',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    if (hasError) {
+      _initializeAudio();
+      return;
+    }
 
-  Widget _buildSmallFlagPlaceholder() {
-    return Container(
-      color: Colors.grey.shade300,
-      child: Center(
-        child: Icon(
-          Icons.flag,
-          color: Colors.grey.shade600,
-          size: 24,
-        ),
-      ),
-    );
+    if (isPlaying) {
+      await audioPlayer.pause();
+      WakelockPlus.disable();
+      setState(() => isPlaying = false);
+    } else {
+      if (audioPlayer.state == PlayerState.paused) {
+        await audioPlayer.resume();
+        WakelockPlus.enable();
+        setState(() => isPlaying = true);
+      } else {
+        playAudio();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Parse motivational text to extract phone number and message
+    final parsedData = _parseMotivationalText();
+    final extractedPhoneNumber = parsedData['phoneNumber'];
+    final actualMessage = parsedData['message'];
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -351,6 +305,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
           ),
           onPressed: () {
             audioPlayer.stop();
+            WakelockPlus.disable();
             Navigator.pop(context);
           },
         ),
@@ -377,7 +332,10 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _buildFlagImage(),
+                FlagImageWidget(
+                  language: widget.language,
+                  languageService: _languageService,
+                ),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -454,7 +412,11 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                   ),
                                 ),
                                 child: ClipOval(
-                                  child: _buildSmallFlagImage(),
+                                  child: FlagImageWidget(
+                                    language: widget.language,
+                                    languageService: _languageService,
+                                    isSmall: true,
+                                  ),
                                 ),
                               ),
                             ),
@@ -478,367 +440,26 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               textAlign: TextAlign.center,
                             ),
                             // Status indicator
-                            if (isLoading || hasError)
-                              Container(
-                                margin: EdgeInsets.only(top: 16),
-                                padding: EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: hasError
-                                      ? Colors.red.shade100
-                                      : isLoading
-                                          ? Colors.blue.shade100
-                                          : Colors.green.shade100,
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(
-                                    color: hasError
-                                        ? Colors.red.shade300
-                                        : isLoading
-                                            ? Colors.blue.shade300
-                                            : Colors.green.shade300,
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (hasError)
-                                      Icon(_getErrorIcon(),
-                                          color: Colors.red.shade700, size: 16)
-                                    else if (isLoading)
-                                      SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation(
-                                              Colors.blue.shade700),
-                                        ),
-                                      )
-                                    else
-                                      Icon(Icons.download,
-                                          color: Colors.green.shade700,
-                                          size: 16),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        hasError
-                                            ? 'Error: ${errorMessage ?? "Unknown error"}'
-                                            : isLoading
-                                                ? errorMessage ?? 'Loading...'
-                                                : widget.language.isLocal
-                                                    ? 'Local audio'
-                                                    : 'Downloaded',
-                                        style: TextStyle(
-                                          color: hasError
-                                              ? Colors.red.shade700
-                                              : isLoading
-                                                  ? Colors.blue.shade700
-                                                  : Colors.green.shade700,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            SizedBox(height: 36),
-                            // Audio player controls
-                            Container(
-                              padding: EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    Colors.green.shade50,
-                                    Colors.white,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.05),
-                                    blurRadius: 10,
-                                    spreadRadius: 0,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                                border: Border.all(
-                                  color: Colors.green.shade100,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  // Track progress
-                                  SliderTheme(
-                                    data: SliderThemeData(
-                                      trackHeight: 4,
-                                      thumbShape: RoundSliderThumbShape(
-                                        enabledThumbRadius: 8,
-                                      ),
-                                      overlayShape: RoundSliderOverlayShape(
-                                        overlayRadius: 16,
-                                      ),
-                                      activeTrackColor: Colors.green.shade700,
-                                      inactiveTrackColor: Colors.green.shade100,
-                                      thumbColor: Colors.white,
-                                      overlayColor:
-                                          Colors.green.withValues(alpha: 0.2),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        // Waveform visualization
-                                        Container(
-                                          height: 40,
-                                          margin: EdgeInsets.only(bottom: 8),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceEvenly,
-                                            children: List.generate(
-                                              30,
-                                              (i) {
-                                                // Create a pattern that's higher in the middle
-                                                double normalizedHeight = 0.3;
-                                                if (i > 5 && i < 25) {
-                                                  normalizedHeight = 0.3 +
-                                                      0.7 *
-                                                          (1 -
-                                                              (i - 15).abs() /
-                                                                  10);
-                                                }
-
-                                                // Make bars to the left of current position more prominent
-                                                final progress = position
-                                                        .inMilliseconds /
-                                                    (duration.inMilliseconds > 0
-                                                        ? duration
-                                                            .inMilliseconds
-                                                        : 1);
-                                                final barProgress = i / 30;
-                                                final isActive =
-                                                    barProgress <= progress;
-
-                                                return Container(
-                                                  width: 3,
-                                                  height: 30 * normalizedHeight,
-                                                  decoration: BoxDecoration(
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            1.5),
-                                                    color: isActive
-                                                        ? Colors.green.shade300
-                                                        : Colors.grey.shade300,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                        Slider(
-                                          value: position.inSeconds.toDouble(),
-                                          min: 0,
-                                          max: duration.inSeconds.toDouble() > 0
-                                              ? duration.inSeconds.toDouble()
-                                              : 1,
-                                          onChanged: (value) {
-                                            final newPosition = Duration(
-                                                seconds: value.toInt());
-                                            audioPlayer.seek(newPosition);
-                                            setState(() {
-                                              position = newPosition;
-                                            });
-                                          },
-                                        ),
-                                        Padding(
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 8),
-                                          child: Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                formatTime(position),
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade700,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                              Text(
-                                                formatTime(duration),
-                                                style: TextStyle(
-                                                  color: Colors.grey.shade700,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(height: 16),
-                                  // Player controls
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceEvenly,
-                                    children: [
-                                      // Rewind 10 seconds
-                                      MaterialButton(
-                                        onPressed: () {
-                                          audioPlayer.seek(
-                                            Duration(
-                                                seconds:
-                                                    position.inSeconds - 10),
-                                          );
-                                        },
-                                        shape: CircleBorder(),
-                                        color: Colors.white,
-                                        elevation: 2,
-                                        padding: EdgeInsets.all(12),
-                                        child: Icon(
-                                          Icons.replay_10,
-                                          color: Colors.green.shade700,
-                                          size: 30,
-                                        ),
-                                      ),
-                                      // Play/Pause
-                                      GestureDetector(
-                                        onTap: () async {
-                                          if (isLoading) {
-                                            return; // Don't allow interaction while loading
-                                          }
-
-                                          if (hasError) {
-                                            _initializeAudio(); // Retry on error
-                                            return;
-                                          }
-
-                                          if (isPlaying) {
-                                            await audioPlayer.pause();
-                                            setState(() => isPlaying = false);
-                                          } else {
-                                            if (audioPlayer.state ==
-                                                PlayerState.paused) {
-                                              await audioPlayer.resume();
-                                              setState(() => isPlaying = true);
-                                            } else {
-                                              playAudio();
-                                            }
-                                          }
-                                        },
-                                        child: Container(
-                                          width: 72,
-                                          height: 72,
-                                          decoration: BoxDecoration(
-                                            gradient: LinearGradient(
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                              colors: hasError
-                                                  ? [
-                                                      Colors.red.shade400,
-                                                      Colors.red.shade700
-                                                    ]
-                                                  : [
-                                                      Colors.green.shade400,
-                                                      Colors.green.shade700
-                                                    ],
-                                            ),
-                                            shape: BoxShape.circle,
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: (hasError
-                                                        ? Colors.red
-                                                        : Colors.green)
-                                                    .withValues(alpha: 0.3),
-                                                spreadRadius: 2,
-                                                blurRadius: 10,
-                                                offset: Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: isLoading
-                                              ? CircularProgressIndicator(
-                                                  color: Colors.white,
-                                                  strokeWidth: 3,
-                                                )
-                                              : Icon(
-                                                  hasError
-                                                      ? Icons.refresh
-                                                      : (isPlaying
-                                                          ? Icons.pause
-                                                          : Icons.play_arrow),
-                                                  color: Colors.white,
-                                                  size: 40,
-                                                ),
-                                        ),
-                                      ),
-                                      // Forward 10 seconds
-                                      MaterialButton(
-                                        onPressed: () {
-                                          audioPlayer.seek(
-                                            Duration(
-                                                seconds:
-                                                    position.inSeconds + 10),
-                                          );
-                                        },
-                                        shape: CircleBorder(),
-                                        color: Colors.white,
-                                        elevation: 2,
-                                        padding: EdgeInsets.all(12),
-                                        child: Icon(
-                                          Icons.forward_10,
-                                          color: Colors.green.shade700,
-                                          size: 30,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 20),
-                                  // Share button row
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      MaterialButton(
-                                        onPressed: _shareAudio,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(30),
-                                        ),
-                                        color: Colors.green,
-                                        elevation: 2,
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 24, vertical: 12),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(
-                                              Icons.share,
-                                              color: Colors.white,
-                                              size: 20,
-                                            ),
-                                            SizedBox(width: 8),
-                                            Text(
-                                              'Share Audio',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                            AudioStatusIndicator(
+                              isLoading: isLoading,
+                              hasError: hasError,
+                              errorMessage: errorMessage,
+                              isLocal: widget.language.isLocal,
+                              getErrorIcon: _getErrorIcon,
                             ),
                             SizedBox(height: 36),
-                            // Info section
+                            AudioControlsWidget(
+                              audioPlayer: audioPlayer,
+                              position: position,
+                              duration: duration,
+                              isPlaying: isPlaying,
+                              isLoading: isLoading,
+                              hasError: hasError,
+                              onPlayPause: _handlePlayPause,
+                              onShare: _shareAudio,
+                              formatTime: formatTime,
+                            ),
+                            SizedBox(height: 36),
                             Container(
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -868,6 +489,19 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               ),
                             ),
                             SizedBox(height: 24),
+                            // Motivational quote
+                            if (actualMessage != null &&
+                                actualMessage.isNotEmpty)
+                              MotivationalQuoteWidget(
+                                motivationalText: actualMessage,
+                              ),
+                            // Connect & Share section (QR Code + WhatsApp)
+                            ConnectShareSectionWidget(
+                              qrDescription: widget.language.qrDescription,
+                              personNum: widget.language.personNum,
+                              extractedPhoneNumber: extractedPhoneNumber,
+                              onWhatsAppPressed: _openWhatsApp,
+                            ),
                             // Additional sounds button
                             if (widget.language.additionalSoundsCount != null &&
                                 widget.language.additionalSoundsCount! > 0)
@@ -877,6 +511,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                 child: ElevatedButton.icon(
                                   onPressed: () {
                                     audioPlayer.pause();
+                                    WakelockPlus.disable();
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
@@ -922,6 +557,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                               ),
                               onPressed: () {
                                 audioPlayer.stop();
+                                WakelockPlus.disable();
                                 Navigator.pop(context);
                               },
                             ),

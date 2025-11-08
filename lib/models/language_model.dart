@@ -1,19 +1,22 @@
 import 'additional_sound_model.dart';
 
 class Language {
-  final String? id; // Add id field for backend integration
+  final String? id;
   final String name;
   final String nativeName;
   final String flagPath;
   final String audioPath;
-  final bool isLocal; // True if audio is bundled with app, false if remote
-  final String? remoteAudioFileName; // Filename for remote audio
+  final bool isLocal;
+  final String? remoteAudioFileName;
   final int? additionalSoundsCount;
   final List<AdditionalSound>? additionalSounds;
   final String? createdAt;
   final String? createdAtHuman;
   final String? updatedAt;
   final String? updatedAtHuman;
+  final String? motivationalText;
+  final int? personNum;
+  final String? qrDescription;
 
   Language({
     this.id,
@@ -29,6 +32,9 @@ class Language {
     this.createdAtHuman,
     this.updatedAt,
     this.updatedAtHuman,
+    this.motivationalText,
+    this.personNum,
+    this.qrDescription,
   });
 
   // Get the filename for remote audio
@@ -63,6 +69,9 @@ class Language {
       createdAtHuman: json['created_at_human'],
       updatedAt: json['updated_at'],
       updatedAtHuman: json['updated_at_human'],
+      motivationalText: json['motivational_text'],
+      personNum: json['person_num'],
+      qrDescription: json['qr_description'],
     );
   }
 
@@ -98,6 +107,9 @@ class Language {
     String? createdAtHuman,
     String? updatedAt,
     String? updatedAtHuman,
+    String? motivationalText,
+    int? personNum,
+    String? qrDescription,
   }) {
     return Language(
       id: id ?? this.id,
@@ -114,6 +126,9 @@ class Language {
       createdAtHuman: createdAtHuman ?? this.createdAtHuman,
       updatedAt: updatedAt ?? this.updatedAt,
       updatedAtHuman: updatedAtHuman ?? this.updatedAtHuman,
+      motivationalText: motivationalText ?? this.motivationalText,
+      personNum: personNum ?? this.personNum,
+      qrDescription: qrDescription ?? this.qrDescription,
     );
   }
 }
