@@ -1,0 +1,164 @@
+{
+  "@@locale": "en",
+  "appTitle": "Call to Islam",
+  "@appTitle": {
+    "description": "The title of the application"
+  },
+  "languageSelection": "Select a Language",
+  "@languageSelection": {
+    "description": "Title for language selection screen"
+  },
+  "searchLanguages": "Search languages...",
+  "@searchLanguages": {
+    "description": "Hint text for language search field"
+  },
+  "audioPlayer": "Audio Player",
+  "@audioPlayer": {
+    "description": "Title for audio player screen"
+  },
+  "play": "Play",
+  "@play": {
+    "description": "Play button label"
+  },
+  "pause": "Pause",
+  "@pause": {
+    "description": "Pause button label"
+  },
+  "share": "Share",
+  "@share": {
+    "description": "Share button label"
+  },
+  "additionalSounds": "Additional Sounds",
+  "@additionalSounds": {
+    "description": "Additional sounds section title"
+  },
+  "books": "Books",
+  "@books": {
+    "description": "Books section title"
+  },
+  "videos": "Videos",
+  "@videos": {
+    "description": "Videos section title"
+  },
+  "settings": "Settings",
+  "@settings": {
+    "description": "Settings screen title"
+  },
+  "motivationalQuote": "Motivational Message",
+  "@motivationalQuote": {
+    "description": "Motivational quote section title"
+  },
+  "connectShare": "Connect & Share",
+  "@connectShare": {
+    "description": "Connect and share section title"
+  },
+  "whatsappContact": "Contact via WhatsApp",
+  "@whatsappContact": {
+    "description": "WhatsApp contact button label"
+  },
+  "scanQRCode": "Scan QR Code",
+  "@scanQRCode": {
+    "description": "QR code section title"
+  },
+  "chooseAnotherLanguage": "Choose Another Language",
+  "@chooseAnotherLanguage": {
+    "description": "Button to go back to language selection"
+  },
+  "audioInfo": "This audio contains Islamic teachings in the {language} language.",
+  "@audioInfo": {
+    "description": "Information about the audio content",
+    "placeholders": {
+      "language": {
+        "type": "String",
+        "example": "English"
+      }
+    }
+  },
+  "loading": "Loading...",
+  "@loading": {
+    "description": "Loading indicator text"
+  },
+  "error": "Error",
+  "@error": {
+    "description": "Generic error message"
+  },
+  "noInternetConnection": "No Internet Connection",
+  "@noInternetConnection": {
+    "description": "No internet error message"
+  },
+  "offlineMode": "Offline Mode",
+  "@offlineMode": {
+    "description": "Offline mode indicator"
+  },
+  "onlineMode": "Online Mode",
+  "@onlineMode": {
+    "description": "Online mode indicator"
+  },
+  "shareAudio": "Listen to \"{language}\" pronunciation ({nativeName})",
+  "@shareAudio": {
+    "description": "Share audio text",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      },
+      "nativeName": {
+        "type": "String"
+      }
+    }
+  },
+  "shareAudioSubject": "Audio pronunciation - {language}",
+  "@shareAudioSubject": {
+    "description": "Share audio subject",
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToShareAudio": "Failed to share audio: {error}",
+  "@failedToShareAudio": {
+    "description": "Error message when sharing audio fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "failedToOpenWhatsApp": "Failed to open WhatsApp: {error}",
+  "@failedToOpenWhatsApp": {
+    "description": "Error message when opening WhatsApp fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "bookTitle": "Book Title",
+  "@bookTitle": {
+    "description": "Book title label"
+  },
+  "readBook": "Read Book",
+  "@readBook": {
+    "description": "Read book button"
+  },
+  "shareBook": "Share Book",
+  "@shareBook": {
+    "description": "Share book button"
+  },
+  "watchVideo": "Watch Video",
+  "@watchVideo": {
+    "description": "Watch video button"
+  },
+  "shareVideo": "Share Video",
+  "@shareVideo": {
+    "description": "Share video button"
+  },
+  "noBooks": "No books available",
+  "@noBooks": {
+    "description": "No books message"
+  },
+  "noVideos": "No videos available",
+  "@noVideos": {
+    "description": "No videos message"
+  }
+}

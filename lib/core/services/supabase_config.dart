@@ -13,7 +13,7 @@ final class SupabaseConfig {
   }) async {
     await Supabase.initialize(
       url: url,
-      anonKey: anonKey,
+      anonKey: anonKey, // Will be renamed to publishableKey in future
     );
   }
 }

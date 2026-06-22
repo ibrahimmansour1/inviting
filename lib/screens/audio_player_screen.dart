@@ -16,6 +16,8 @@ import '../widgets/audio_player/connect_share_section_widget.dart';
 import '../widgets/audio_player/flag_image_widget.dart';
 import '../widgets/audio_player/motivational_quote_widget.dart';
 import 'additional_sounds_screen.dart';
+import 'books_screen.dart';
+import 'videos_screen.dart';
 
 class AudioPlayerScreen extends StatefulWidget {
   final Language language;
@@ -541,6 +543,94 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                                     elevation: 4,
                                     shadowColor:
                                         Colors.green.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
+                            // Books button
+                            if (widget.language.books != null &&
+                                widget.language.books!.isNotEmpty)
+                              Container(
+                                width: double.infinity,
+                                margin: EdgeInsets.only(bottom: 16),
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    audioPlayer.pause();
+                                    WakelockPlus.disable();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => BooksScreen(
+                                          language: widget.language,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(
+                                    Icons.menu_book,
+                                    color: Colors.white,
+                                  ),
+                                  label: Text(
+                                    'Books (${widget.language.books!.length})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue.shade600,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor:
+                                        Colors.blue.withValues(alpha: 0.3),
+                                  ),
+                                ),
+                              ),
+                            // Videos button
+                            if (widget.language.videos != null &&
+                                widget.language.videos!.isNotEmpty)
+                              Container(
+                                width: double.infinity,
+                                margin: EdgeInsets.only(bottom: 16),
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    audioPlayer.pause();
+                                    WakelockPlus.disable();
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => VideosScreen(
+                                          language: widget.language,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: Icon(
+                                    Icons.video_library,
+                                    color: Colors.white,
+                                  ),
+                                  label: Text(
+                                    'Videos (${widget.language.videos!.length})',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red.shade600,
+                                    foregroundColor: Colors.white,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 24, vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    elevation: 4,
+                                    shadowColor:
+                                        Colors.red.withValues(alpha: 0.3),
                                   ),
                                 ),
                               ),

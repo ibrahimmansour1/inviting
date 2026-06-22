@@ -1,4 +1,6 @@
 import 'additional_sound_model.dart';
+import 'book_model.dart';
+import 'video_model.dart';
 
 class Language {
   final String? id;
@@ -10,6 +12,8 @@ class Language {
   final String? remoteAudioFileName;
   final int? additionalSoundsCount;
   final List<AdditionalSound>? additionalSounds;
+  final List<Book>? books;
+  final List<Video>? videos;
   final String? createdAt;
   final String? createdAtHuman;
   final String? updatedAt;
@@ -28,6 +32,8 @@ class Language {
     this.remoteAudioFileName,
     this.additionalSoundsCount,
     this.additionalSounds,
+    this.books,
+    this.videos,
     this.createdAt,
     this.createdAtHuman,
     this.updatedAt,
@@ -54,6 +60,8 @@ class Language {
     String? remoteAudioFileName,
     int? additionalSoundsCount,
     List<AdditionalSound>? additionalSounds,
+    List<Book>? books,
+    List<Video>? videos,
     String? createdAt,
     String? createdAtHuman,
     String? updatedAt,
@@ -73,6 +81,8 @@ class Language {
       additionalSoundsCount:
           additionalSoundsCount ?? this.additionalSoundsCount,
       additionalSounds: additionalSounds ?? this.additionalSounds,
+      books: books ?? this.books,
+      videos: videos ?? this.videos,
       createdAt: createdAt ?? this.createdAt,
       createdAtHuman: createdAtHuman ?? this.createdAtHuman,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -91,6 +101,20 @@ class Language {
             .toList()
         : <AdditionalSound>[];
 
+    final booksList = json['books'] as List?;
+    final parsedBooks = booksList != null
+        ? booksList
+            .map((e) => Book.fromSupabase(e as Map<String, dynamic>))
+            .toList()
+        : <Book>[];
+
+    final videosList = json['videos'] as List?;
+    final parsedVideos = videosList != null
+        ? videosList
+            .map((e) => Video.fromSupabase(e as Map<String, dynamic>))
+            .toList()
+        : <Video>[];
+
     return Language(
       id: json['id'].toString(),
       name: json['name'] ?? '',
@@ -102,6 +126,8 @@ class Language {
       additionalSoundsCount:
           parsedSounds.isNotEmpty ? parsedSounds.length : null,
       additionalSounds: parsedSounds,
+      books: parsedBooks.isNotEmpty ? parsedBooks : null,
+      videos: parsedVideos.isNotEmpty ? parsedVideos : null,
       createdAt: json['created_at'],
       createdAtHuman: json['created_at_human'],
       updatedAt: json['updated_at'],
@@ -127,6 +153,10 @@ class Language {
       if (additionalSounds != null)
         'additional_sounds':
             additionalSounds!.map((sound) => sound.toJson()).toList(),
+      if (books != null)
+        'books': books!.map((book) => book.toJson()).toList(),
+      if (videos != null)
+        'videos': videos!.map((video) => video.toJson()).toList(),
     };
   }
 }

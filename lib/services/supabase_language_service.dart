@@ -9,7 +9,7 @@ final class SupabaseLanguageService {
   Future<List<Language>> getLanguages() async {
     final data = await _supabase.client
         .from('languages')
-        .select('*, additional_sounds(*)');
+        .select('*, additional_sounds(*), books(*), videos(*)');
 
     return data
         .map((e) => Language.fromSupabase(Map<String, dynamic>.from(e)))
@@ -29,7 +29,7 @@ final class SupabaseLanguageService {
     try {
       final data = await _supabase.client
           .from('languages')
-          .select('*, additional_sounds(*)')
+          .select('*, additional_sounds(*), books(*), videos(*)')
           .eq('id', id)
           .single();
       return Language.fromSupabase(Map<String, dynamic>.from(data));
