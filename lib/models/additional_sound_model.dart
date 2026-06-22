@@ -1,35 +1,33 @@
-class AdditionalSound {
-  final int id;
+final class AdditionalSound {
+  final String id;
   final String name;
   final String file;
-  final String createdAt;
-  final String createdAtHuman;
-  final String updatedAt;
-  final String updatedAtHuman;
+  final String? createdAt;
+  final String? createdAtHuman;
+  final String? updatedAt;
+  final String? updatedAtHuman;
 
   AdditionalSound({
     required this.id,
     required this.name,
     required this.file,
-    required this.createdAt,
-    required this.createdAtHuman,
-    required this.updatedAt,
-    required this.updatedAtHuman,
+    this.createdAt,
+    this.createdAtHuman,
+    this.updatedAt,
+    this.updatedAtHuman,
   });
 
-  // Get the filename for the additional sound
   String get fileName => file.split('/').last;
 
-  // JSON serialization
-  factory AdditionalSound.fromJson(Map<String, dynamic> json) {
+  factory AdditionalSound.fromSupabase(Map<String, dynamic> json) {
     return AdditionalSound(
-      id: json['id'] ?? 0,
+      id: json['id'].toString(),
       name: json['name'] ?? '',
-      file: json['file'] ?? '',
-      createdAt: json['created_at'] ?? '',
-      createdAtHuman: json['created_at_human'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
-      updatedAtHuman: json['updated_at_human'] ?? '',
+      file: json['file_url'] ?? '',
+      createdAt: json['created_at'],
+      createdAtHuman: json['created_at_human'],
+      updatedAt: json['updated_at'],
+      updatedAtHuman: json['updated_at_human'],
     );
   }
 
@@ -37,7 +35,7 @@ class AdditionalSound {
     return {
       'id': id,
       'name': name,
-      'file': file,
+      'file_url': file,
       'created_at': createdAt,
       'created_at_human': createdAtHuman,
       'updated_at': updatedAt,

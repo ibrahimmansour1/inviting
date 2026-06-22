@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
@@ -22,64 +20,6 @@ class LanguageCard extends StatefulWidget {
 }
 
 class _LanguageCardState extends State<LanguageCard> {
-  bool _isCached = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _checkCacheStatus();
-  }
-
-  @override
-  void didUpdateWidget(LanguageCard oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // Refresh cache status when widget updates
-    if (oldWidget.language.id != widget.language.id) {
-      _checkCacheStatus();
-    }
-  }
-
-  void _checkCacheStatus() async {
-    final cached = await widget.languageService.isAudioCached(widget.language);
-    if (mounted) {
-      setState(() {
-        _isCached = cached;
-      });
-    }
-  }
-
-  Widget _buildStatusIcon() {
-    if (widget.language.isLocal || _isCached) {
-      // Local or already downloaded - show play icon
-      return Container(
-        padding: EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Icon(
-          Icons.play_circle_outline,
-          color: Colors.white,
-          size: 18,
-        ),
-      );
-    } else {
-      // Not downloaded - show download icon
-      return Container(
-        padding: EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Icon(
-          Icons.download,
-          color: Colors.white,
-          size: 18,
-        ),
-      );
-    }
-  }
-
   Widget _buildStatusBadge() {
     if (widget.language.isLocal) {
       return Container(
@@ -97,39 +37,8 @@ class _LanguageCardState extends State<LanguageCard> {
           ),
         ),
       );
-    } else if (_isCached) {
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          'DOWNLOADED',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-    } else {
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-        decoration: BoxDecoration(
-          color: Colors.orange.withValues(alpha: 0.8),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Text(
-          'DOWNLOAD',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
     }
+    return const SizedBox.shrink();
   }
 
   @override
@@ -157,65 +66,24 @@ class _LanguageCardState extends State<LanguageCard> {
                         decoration: BoxDecoration(
                           color: Colors.grey.shade100,
                         ),
-                        child: widget.language.isLocal
-                            ? Image.asset(
-                                widget.language.flagPath,
-                                fit: BoxFit.cover,
-                              )
-                            : FutureBuilder<String>(
-                                future: widget.languageService
-                                    .getCachedFlagPath(widget.language),
-                                builder: (context, snapshot) {
-                                  if (snapshot.hasData) {
-                                    if (snapshot.data!.startsWith('/')) {
-                                      // Local cached file
-                                      return Image.file(
-                                        File(snapshot.data!),
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return _buildFlagPlaceholder();
-                                        },
-                                      );
-                                    } else {
-                                      // Network image
-                                      return Image.network(
-                                        snapshot.data!,
-                                        fit: BoxFit.cover,
-                                        loadingBuilder:
-                                            (context, child, loadingProgress) {
-                                          if (loadingProgress == null) {
-                                            return child;
-                                          }
-                                          return Center(
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              valueColor:
-                                                  AlwaysStoppedAnimation<Color>(
-                                                      Colors.green),
-                                            ),
-                                          );
-                                        },
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return _buildFlagPlaceholder();
-                                        },
-                                      );
-                                    }
-                                  } else if (snapshot.hasError) {
-                                    return _buildFlagPlaceholder();
-                                  } else {
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                                Colors.green),
-                                      ),
-                                    );
-                                  }
-                                },
+                        child: Image.network(
+                          widget.language.flagPath,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor:
+                                    const AlwaysStoppedAnimation<Color>(
+                                        Colors.green),
                               ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return _buildFlagPlaceholder();
+                          },
+                        ),
                       ),
                       // Subtle gradient overlay
                       Container(
@@ -283,12 +151,7 @@ class _LanguageCardState extends State<LanguageCard> {
               left: 8,
               child: _buildStatusBadge(),
             ),
-            // Status icon (top right)
-            Positioned(
-              top: 8,
-              right: 8,
-              child: _buildStatusIcon(),
-            ),
+
             // Additional sounds badge (bottom right)
             if (widget.language.additionalSoundsCount != null &&
                 widget.language.additionalSoundsCount! > 0)

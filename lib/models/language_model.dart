@@ -37,62 +37,13 @@ class Language {
     this.qrDescription,
   });
 
-  // Get the filename for remote audio
   String get audioFileName {
     if (remoteAudioFileName != null) {
       return remoteAudioFileName!;
     }
-    // Extract filename from audioPath
     return audioPath.split('/').last;
   }
 
-  // JSON serialization
-  factory Language.fromJson(Map<String, dynamic> json) {
-    List<AdditionalSound>? additionalSounds;
-    if (json['additional_sounds'] != null) {
-      additionalSounds = (json['additional_sounds'] as List)
-          .map((soundJson) => AdditionalSound.fromJson(soundJson))
-          .toList();
-    }
-
-    return Language(
-      id: json['_id'] ?? json['id']?.toString(),
-      name: json['english_name'] ?? json['name'] ?? '',
-      nativeName: json['native_name'] ?? json['nativeName'] ?? '',
-      flagPath: json['flag'] ?? json['flagPath'] ?? '',
-      audioPath: json['sound'] ?? json['audioPath'] ?? '',
-      isLocal: json['isLocal'] ?? false,
-      remoteAudioFileName: json['remoteAudioFileName'],
-      additionalSoundsCount: json['additional_sounds_count'],
-      additionalSounds: additionalSounds,
-      createdAt: json['created_at'],
-      createdAtHuman: json['created_at_human'],
-      updatedAt: json['updated_at'],
-      updatedAtHuman: json['updated_at_human'],
-      motivationalText: json['motivational_text'],
-      personNum: json['person_num'],
-      qrDescription: json['qr_description'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'english_name': name,
-      'native_name': nativeName,
-      'flag': flagPath,
-      'sound': audioPath,
-      'isLocal': isLocal,
-      'remoteAudioFileName': remoteAudioFileName,
-      if (additionalSoundsCount != null)
-        'additional_sounds_count': additionalSoundsCount,
-      if (additionalSounds != null)
-        'additional_sounds':
-            additionalSounds!.map((sound) => sound.toJson()).toList(),
-    };
-  }
-
-  // Create a copy with updated fields
   Language copyWith({
     String? id,
     String? name,
@@ -130,5 +81,52 @@ class Language {
       personNum: personNum ?? this.personNum,
       qrDescription: qrDescription ?? this.qrDescription,
     );
+  }
+
+  factory Language.fromSupabase(Map<String, dynamic> json) {
+    final soundsList = json['additional_sounds'] as List?;
+    final parsedSounds = soundsList != null
+        ? soundsList
+            .map((e) => AdditionalSound.fromSupabase(e as Map<String, dynamic>))
+            .toList()
+        : <AdditionalSound>[];
+
+    return Language(
+      id: json['id'].toString(),
+      name: json['name'] ?? '',
+      nativeName: json['native_name'] ?? '',
+      flagPath: json['flag_url'] ?? '',
+      audioPath: json['audio_url'] ?? '',
+      isLocal: json['is_local'] ?? false,
+      remoteAudioFileName: json['remote_audio_filename'],
+      additionalSoundsCount:
+          parsedSounds.isNotEmpty ? parsedSounds.length : null,
+      additionalSounds: parsedSounds,
+      createdAt: json['created_at'],
+      createdAtHuman: json['created_at_human'],
+      updatedAt: json['updated_at'],
+      updatedAtHuman: json['updated_at_human'],
+      motivationalText: json['motivational_text'],
+      personNum: json['person_num'],
+      qrDescription: json['qr_description'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'native_name': nativeName,
+      'flag_url': flagPath,
+      'audio_url': audioPath,
+      'is_local': isLocal,
+      'remote_audio_filename': remoteAudioFileName,
+      'motivational_text': motivationalText,
+      'person_num': personNum,
+      'qr_description': qrDescription,
+      if (additionalSounds != null)
+        'additional_sounds':
+            additionalSounds!.map((sound) => sound.toJson()).toList(),
+    };
   }
 }

@@ -69,7 +69,8 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen>
         filteredLanguages = List.from(allLanguages);
         isOnline = false;
       });
-
+ print('🔴 ERROR LOADING LANGUAGES: $e');
+  print('🔴 STACK: ${e.toString()}');
       if (mounted) {
         String errorMessage = 'Unable to load languages from server';
         if (allLanguages.isEmpty) {

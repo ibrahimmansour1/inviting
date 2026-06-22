@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -69,19 +73,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
 
     try {
-      // Check if audio is already cached
-      final isCached = await _languageService.isAudioCached(widget.language);
-
-      // Show download message if not cached
-      if (!isCached && !widget.language.isLocal) {
-        setState(() {
-          errorMessage = 'Downloading audio...';
-        });
-      }
-
-      final cachedPath =
+      final url =
           await _languageService.getCachedAudioPath(widget.language);
-      await audioPlayer.play(DeviceFileSource(cachedPath));
+      await audioPlayer.play(UrlSource(url));
       WakelockPlus.enable();
       setState(() {
         isPlaying = true;
@@ -146,19 +140,23 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
 
   Future<void> _shareAudio() async {
     try {
-      // Get the cached audio file path
-      final cachedPath =
-          await _languageService.getCachedAudioPath(widget.language);
+      final tempDir = await getTemporaryDirectory();
+      final fileName = widget.language.audioFileName;
+      final tempPath = '${tempDir.path}/$fileName';
+      final tempFile = File(tempPath);
 
-      // Share the audio file
+      if (!await tempFile.exists()) {
+        final dio = Dio();
+        await dio.download(widget.language.audioPath, tempPath);
+      }
+
       await Share.shareXFiles(
-        [XFile(cachedPath)],
+        [XFile(tempPath)],
         text:
             'Listen to "${widget.language.name}" pronunciation (${widget.language.nativeName})',
         subject: 'Audio pronunciation - ${widget.language.name}',
       );
     } catch (e) {
-      // Show error message if sharing fails
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -204,10 +202,9 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
 
     try {
-      // Use LanguageService to get cached audio path for all languages
-      final cachedPath =
+      final url =
           await _languageService.getCachedAudioPath(widget.language);
-      await audioPlayer.play(DeviceFileSource(cachedPath));
+      await audioPlayer.play(UrlSource(url));
       WakelockPlus.enable();
       setState(() {
         isPlaying = true;

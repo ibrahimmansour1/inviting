@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
             color: Colors.green.shade800,
           ),
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 3,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(

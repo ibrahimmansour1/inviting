@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:audioplayers/audioplayers.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
@@ -140,12 +144,12 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
     });
 
     try {
-      final cachedPath = await _languageService.getCachedAdditionalSoundPath(
+      final url = await _languageService.getCachedAdditionalSoundPath(
         sound.file,
         sound.fileName,
       );
 
-      await audioPlayer.play(DeviceFileSource(cachedPath));
+      await audioPlayer.play(UrlSource(url));
       WakelockPlus.enable();
       setState(() {
         isPlaying = true;
@@ -175,21 +179,23 @@ class _AdditionalSoundsScreenState extends State<AdditionalSoundsScreen>
 
   Future<void> _shareAdditionalSound(AdditionalSound sound) async {
     try {
-      // Get the cached audio file path
-      final cachedPath = await _languageService.getCachedAdditionalSoundPath(
-        sound.file,
-        sound.fileName,
-      );
+      final tempDir = await getTemporaryDirectory();
+      final fileName = sound.fileName;
+      final tempPath = '${tempDir.path}/$fileName';
+      final tempFile = File(tempPath);
 
-      // Share the audio file
+      if (!await tempFile.exists()) {
+        final dio = Dio();
+        await dio.download(sound.file, tempPath);
+      }
+
       await Share.shareXFiles(
-        [XFile(cachedPath)],
+        [XFile(tempPath)],
         text:
             'Listen to "${sound.name}" from ${widget.language.name} (${widget.language.nativeName})',
         subject: 'Additional Sound - ${sound.name}',
       );
     } catch (e) {
-      // Show error message if sharing fails
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

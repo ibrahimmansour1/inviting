@@ -1,3 +1,4 @@
 class AppConstants {
-  static String baseUrl = 'https://conveyislam.mubark.org/api/languages';
+  static const String supabaseUrl =
+      'https://ohjzdyjmsgcdsmqrprfd.supabase.co';
 }

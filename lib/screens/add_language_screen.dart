@@ -1,7 +1,8 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../services/language_service.dart';
 
@@ -44,62 +45,62 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
   }
 
   Future<void> _pickFlagImage() async {
-    // For demo purposes, we'll create a placeholder file
-    // In a real app, you'd use image_picker package
     try {
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/temp_flag.png');
-      
-      // Create a placeholder file (in real app, this would be from image picker)
-      await file.writeAsBytes([]);
-      
+      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
+      if (picked == null) return;
+
+      final file = File(picked.path);
       setState(() {
         _selectedFlagFile = file;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Flag image selected (placeholder)'),
-          backgroundColor: Colors.green,
-        ),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Flag image selected: ${picked.name}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error selecting flag: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting flag: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _pickAudioFile() async {
-    // For demo purposes, we'll create a placeholder file
-    // In a real app, you'd use file_picker package
     try {
-      final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/temp_audio.m4a');
-      
-      // Create a placeholder file (in real app, this would be from file picker)
-      await file.writeAsBytes([]);
-      
+      final result = await FilePicker.platform.pickFiles(type: FileType.audio);
+      if (result == null || result.files.single.path == null) return;
+
+      final file = File(result.files.single.path!);
       setState(() {
         _selectedAudioFile = file;
       });
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Audio file selected (placeholder)'),
-          backgroundColor: Colors.green,
-        ),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Audio file selected: ${result.files.single.name}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error selecting audio: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting audio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
