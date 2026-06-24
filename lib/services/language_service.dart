@@ -77,6 +77,11 @@ final class LanguageService {
     required File audioFile,
     String? qrLink,
     File? qrImageFile,
+    String? motivationalText,
+    String? whatsappNumber,
+    List<Map<String, dynamic>>? subAudios,
+    List<File>? bookFiles,
+    List<String>? youtubeVideoUrls,
   }) async {
     await _supabaseLanguage.addLanguage(
       name: name,
@@ -85,6 +90,11 @@ final class LanguageService {
       audioFile: audioFile,
       qrLink: qrLink,
       qrImageFile: qrImageFile,
+      motivationalText: motivationalText,
+      whatsappNumber: whatsappNumber,
+      subAudios: subAudios,
+      bookFiles: bookFiles,
+      youtubeVideoUrls: youtubeVideoUrls,
     );
     await getAllLanguages();
   }

@@ -348,10 +348,21 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
       return;
     }
 
-    if (_selectedFlagFile == null || _selectedAudioFile == null) {
+    // Validate required files
+    if (_selectedFlagFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please select both flag and audio files'),
+          content: Text('Please select a flag image (required)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_selectedAudioFile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a main audio file (required)'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -363,12 +374,25 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
     });
 
     try {
-      // TODO: Implement complete upload logic with all fields
-      // This will require updating the LanguageService to handle:
-      // - Sub-audios upload
-      // - Books upload
-      // - Videos upload
-      // - Motivational text, QR link, WhatsApp number
+      // Prepare sub-audios data
+      List<Map<String, dynamic>>? subAudiosData;
+      if (_subAudios.isNotEmpty) {
+        subAudiosData = _subAudios.map((audio) {
+          return {
+            'file': audio['file'] as File,
+            'title': (audio['title'] as TextEditingController).text.trim(),
+          };
+        }).toList();
+      }
+
+      // Prepare YouTube video URLs
+      List<String>? videoUrls;
+      if (_youtubeVideoControllers.isNotEmpty) {
+        videoUrls = _youtubeVideoControllers
+            .map((controller) => controller.text.trim())
+            .where((url) => url.isNotEmpty)
+            .toList();
+      }
 
       await _languageService.addLanguage(
         name: _nameController.text.trim(),
@@ -379,15 +403,23 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
             ? _qrLinkController.text.trim()
             : null,
         qrImageFile: _selectedQrImageFile,
+        motivationalText: _motivationalTextController.text.trim().isNotEmpty
+            ? _motivationalTextController.text.trim()
+            : null,
+        whatsappNumber: _whatsappController.text.trim().isNotEmpty
+            ? _whatsappController.text.trim()
+            : null,
+        subAudios: subAudiosData,
+        bookFiles: _selectedBookFiles.isNotEmpty ? _selectedBookFiles : null,
+        youtubeVideoUrls: videoUrls,
       );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-                'Language added successfully! (Note: Extended fields need backend implementation)'),
+            content: Text('Language added successfully with all content!'),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 5),
+            duration: Duration(seconds: 3),
           ),
         );
         Navigator.pop(context, true);

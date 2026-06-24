@@ -43,7 +43,13 @@ final class SupabaseLanguageService {
     required File audioFile,
     String? qrLink,
     File? qrImageFile,
+    String? motivationalText,
+    String? whatsappNumber,
+    List<Map<String, dynamic>>? subAudios, // {file: File, title: String}
+    List<File>? bookFiles,
+    List<String>? youtubeVideoUrls,
   }) async {
+    // Upload required files
     final flagUrl = await _supabase.uploadFlag(name, flagFile);
     final audioUrl = await _supabase.uploadAudio(name, audioFile);
 
@@ -52,14 +58,62 @@ final class SupabaseLanguageService {
       qrImageUrl = await _supabase.uploadQrImage(name, qrImageFile);
     }
 
-    await _supabase.client.from('languages').insert({
-      'name': name,
-      'native_name': nativeName,
-      'flag_url': flagUrl,
-      'audio_url': audioUrl,
-      if (qrLink != null && qrLink.isNotEmpty) 'qr_description': qrLink,
-      if (qrImageUrl != null) 'qr_image_url': qrImageUrl,
-    });
+    // Insert language record
+    final languageData = await _supabase.client
+        .from('languages')
+        .insert({
+          'name': name,
+          'native_name': nativeName,
+          'flag_url': flagUrl,
+          'audio_url': audioUrl,
+          if (qrLink != null && qrLink.isNotEmpty) 'qr_description': qrLink,
+          if (qrImageUrl != null) 'qr_image_url': qrImageUrl,
+          if (motivationalText != null && motivationalText.isNotEmpty)
+            'motivational_text': motivationalText,
+          if (whatsappNumber != null && whatsappNumber.isNotEmpty)
+            'person_num': whatsappNumber,
+        })
+        .select()
+        .single();
+
+    final languageId = languageData['id'].toString();
+
+    // Upload and insert sub-audios
+    if (subAudios != null && subAudios.isNotEmpty) {
+      for (var audio in subAudios) {
+        final file = audio['file'] as File;
+        final title = audio['title'] as String;
+        final audioUrl = await _supabase.uploadAdditionalSound(name, file);
+        await _supabase.client.from('additional_sounds').insert({
+          'language_id': languageId,
+          'title': title,
+          'audio_url': audioUrl,
+        });
+      }
+    }
+
+    // Upload and insert books
+    if (bookFiles != null && bookFiles.isNotEmpty) {
+      for (var file in bookFiles) {
+        final bookUrl = await _supabase.uploadBook(name, file);
+        final fileName = file.path.split('/').last;
+        await _supabase.client.from('books').insert({
+          'language_id': languageId,
+          'title': fileName,
+          'file_url': bookUrl,
+        });
+      }
+    }
+
+    // Insert YouTube videos
+    if (youtubeVideoUrls != null && youtubeVideoUrls.isNotEmpty) {
+      for (var url in youtubeVideoUrls) {
+        await _supabase.client.from('videos').insert({
+          'language_id': languageId,
+          'video_url': url,
+        });
+      }
+    }
   }
 
   Future<void> updateLanguage({

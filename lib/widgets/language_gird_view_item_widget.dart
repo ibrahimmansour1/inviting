@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/language_model.dart';
 import '../screens/audio_player_screen.dart';
+import '../screens/edit_language_screen.dart';
 import '../services/language_service.dart';
 import 'language_card.dart';
 
@@ -86,13 +87,20 @@ class _LanguageGridViewItemWidgetState
   }
 
   Future<void> _editLanguage() async {
-    // TODO: Navigate to edit screen
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit functionality coming soon'),
-        backgroundColor: Colors.blue,
+    final language = widget.filteredLanguages[widget.index];
+
+    // Navigate to edit screen
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditLanguageScreen(language: language),
       ),
     );
+
+    // If language was updated, trigger refresh
+    if (result == true && mounted) {
+      widget.onLanguageDeleted?.call();
+    }
   }
 
   @override
