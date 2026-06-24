@@ -7,12 +7,18 @@ class LanguageCard extends StatefulWidget {
   final Language language;
   final LanguageService languageService;
   final VoidCallback onTap;
+  final bool isAdminMode;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   const LanguageCard({
     super.key,
     required this.language,
     required this.languageService,
     required this.onTap,
+    this.isAdminMode = false,
+    this.onEdit,
+    this.onDelete,
   });
 
   @override
@@ -39,6 +45,51 @@ class _LanguageCardState extends State<LanguageCard> {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildAdminControls() {
+    if (!widget.isAdminMode) return const SizedBox.shrink();
+
+    return Positioned(
+      top: 4,
+      right: 4,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (widget.onEdit != null)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.blue.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.edit, size: 18),
+                color: Colors.white,
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+                onPressed: widget.onEdit,
+                tooltip: 'Edit',
+              ),
+            ),
+          const SizedBox(width: 4),
+          if (widget.onDelete != null)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.delete, size: 18),
+                color: Colors.white,
+                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(),
+                onPressed: widget.onDelete,
+                tooltip: 'Delete',
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -74,9 +125,8 @@ class _LanguageCardState extends State<LanguageCard> {
                             return Center(
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor:
-                                    const AlwaysStoppedAnimation<Color>(
-                                        Colors.green),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Colors.green),
                               ),
                             );
                           },
@@ -197,6 +247,8 @@ class _LanguageCardState extends State<LanguageCard> {
                   ),
                 ),
               ),
+            // Admin controls (top right)
+            _buildAdminControls(),
           ],
         ),
       ),

@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:shared_preferences/shared_preferences.dart';
-
 import 'package:call_to_islam/models/language_model.dart';
 import 'package:call_to_islam/services/supabase_language_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final class LanguageService {
   final SupabaseLanguageService _supabaseLanguage = SupabaseLanguageService();
@@ -76,12 +75,16 @@ final class LanguageService {
     required String nativeName,
     required File flagFile,
     required File audioFile,
+    String? qrLink,
+    File? qrImageFile,
   }) async {
     await _supabaseLanguage.addLanguage(
       name: name,
       nativeName: nativeName,
       flagFile: flagFile,
       audioFile: audioFile,
+      qrLink: qrLink,
+      qrImageFile: qrImageFile,
     );
     await getAllLanguages();
   }

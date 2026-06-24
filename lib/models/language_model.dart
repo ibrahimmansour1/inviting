@@ -21,6 +21,7 @@ class Language {
   final String? motivationalText;
   final int? personNum;
   final String? qrDescription;
+  final String? qrImageUrl; // New field for QR code as image
 
   Language({
     this.id,
@@ -41,6 +42,7 @@ class Language {
     this.motivationalText,
     this.personNum,
     this.qrDescription,
+    this.qrImageUrl,
   });
 
   String get audioFileName {
@@ -69,6 +71,7 @@ class Language {
     String? motivationalText,
     int? personNum,
     String? qrDescription,
+    String? qrImageUrl,
   }) {
     return Language(
       id: id ?? this.id,
@@ -90,6 +93,7 @@ class Language {
       motivationalText: motivationalText ?? this.motivationalText,
       personNum: personNum ?? this.personNum,
       qrDescription: qrDescription ?? this.qrDescription,
+      qrImageUrl: qrImageUrl ?? this.qrImageUrl,
     );
   }
 
@@ -135,6 +139,7 @@ class Language {
       motivationalText: json['motivational_text'],
       personNum: json['person_num'],
       qrDescription: json['qr_description'],
+      qrImageUrl: json['qr_image_url'],
     );
   }
 
@@ -150,11 +155,11 @@ class Language {
       'motivational_text': motivationalText,
       'person_num': personNum,
       'qr_description': qrDescription,
+      'qr_image_url': qrImageUrl,
       if (additionalSounds != null)
         'additional_sounds':
             additionalSounds!.map((sound) => sound.toJson()).toList(),
-      if (books != null)
-        'books': books!.map((book) => book.toJson()).toList(),
+      if (books != null) 'books': books!.map((book) => book.toJson()).toList(),
       if (videos != null)
         'videos': videos!.map((video) => video.toJson()).toList(),
     };

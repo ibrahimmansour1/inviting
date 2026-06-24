@@ -75,8 +75,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
 
     try {
-      final url =
-          await _languageService.getCachedAudioPath(widget.language);
+      final url = await _languageService.getCachedAudioPath(widget.language);
       await audioPlayer.play(UrlSource(url));
       WakelockPlus.enable();
       setState(() {
@@ -204,8 +203,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
     });
 
     try {
-      final url =
-          await _languageService.getCachedAudioPath(widget.language);
+      final url = await _languageService.getCachedAudioPath(widget.language);
       await audioPlayer.play(UrlSource(url));
       WakelockPlus.enable();
       setState(() {
@@ -497,6 +495,7 @@ class _AudioPlayerScreenState extends State<AudioPlayerScreen>
                             // Connect & Share section (QR Code + WhatsApp)
                             ConnectShareSectionWidget(
                               qrDescription: widget.language.qrDescription,
+                              qrImageUrl: widget.language.qrImageUrl,
                               personNum: widget.language.personNum,
                               extractedPhoneNumber: extractedPhoneNumber,
                               onWhatsAppPressed: _openWhatsApp,

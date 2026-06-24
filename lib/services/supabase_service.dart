@@ -21,8 +21,7 @@ final class SupabaseService {
 
   Future<String> uploadFlag(String languageName, File file) async {
     final ext = file.path.split('.').last;
-    final path =
-        '${languageName.replaceAll(' ', '_').toLowerCase()}_flag.$ext';
+    final path = '${languageName.replaceAll(' ', '_').toLowerCase()}_flag.$ext';
     return uploadFile(bucket: 'flags', path: path, file: file);
   }
 
@@ -31,5 +30,11 @@ final class SupabaseService {
     final path =
         '${languageName.replaceAll(' ', '_').toLowerCase()}_audio.$ext';
     return uploadFile(bucket: 'audios', path: path, file: file);
+  }
+
+  Future<String> uploadQrImage(String languageName, File file) async {
+    final ext = file.path.split('.').last;
+    final path = '${languageName.replaceAll(' ', '_').toLowerCase()}_qr.$ext';
+    return uploadFile(bucket: 'qr_codes', path: path, file: file);
   }
 }

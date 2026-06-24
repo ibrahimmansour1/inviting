@@ -17,10 +17,8 @@ final class SupabaseLanguageService {
   }
 
   Stream<List<Language>> streamLanguages() {
-    return _supabase.client
-        .from('languages')
-        .stream(primaryKey: ['id'])
-        .map((data) => data
+    return _supabase.client.from('languages').stream(primaryKey: ['id']).map(
+        (data) => data
             .map((e) => Language.fromSupabase(Map<String, dynamic>.from(e)))
             .toList());
   }
@@ -43,15 +41,24 @@ final class SupabaseLanguageService {
     required String nativeName,
     required File flagFile,
     required File audioFile,
+    String? qrLink,
+    File? qrImageFile,
   }) async {
     final flagUrl = await _supabase.uploadFlag(name, flagFile);
     final audioUrl = await _supabase.uploadAudio(name, audioFile);
+
+    String? qrImageUrl;
+    if (qrImageFile != null) {
+      qrImageUrl = await _supabase.uploadQrImage(name, qrImageFile);
+    }
 
     await _supabase.client.from('languages').insert({
       'name': name,
       'native_name': nativeName,
       'flag_url': flagUrl,
       'audio_url': audioUrl,
+      if (qrLink != null && qrLink.isNotEmpty) 'qr_description': qrLink,
+      if (qrImageUrl != null) 'qr_image_url': qrImageUrl,
     });
   }
 
@@ -61,6 +68,8 @@ final class SupabaseLanguageService {
     String? nativeName,
     File? flagFile,
     File? audioFile,
+    String? qrLink,
+    File? qrImageFile,
   }) async {
     final updates = <String, dynamic>{};
 
@@ -71,6 +80,13 @@ final class SupabaseLanguageService {
     }
     if (audioFile != null) {
       updates['audio_url'] = await _supabase.uploadAudio(name ?? id, audioFile);
+    }
+    if (qrLink != null) {
+      updates['qr_description'] = qrLink;
+    }
+    if (qrImageFile != null) {
+      updates['qr_image_url'] =
+          await _supabase.uploadQrImage(name ?? id, qrImageFile);
     }
 
     if (updates.isNotEmpty) {

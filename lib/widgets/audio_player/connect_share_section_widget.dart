@@ -5,6 +5,7 @@ import 'whatsapp_button_widget.dart';
 
 class ConnectShareSectionWidget extends StatelessWidget {
   final String? qrDescription;
+  final String? qrImageUrl;
   final int? personNum;
   final String? extractedPhoneNumber;
   final Function(String) onWhatsAppPressed;
@@ -12,6 +13,7 @@ class ConnectShareSectionWidget extends StatelessWidget {
   const ConnectShareSectionWidget({
     super.key,
     required this.qrDescription,
+    this.qrImageUrl,
     required this.personNum,
     this.extractedPhoneNumber,
     required this.onWhatsAppPressed,
@@ -19,7 +21,8 @@ class ConnectShareSectionWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hasQrCode = qrDescription != null && qrDescription!.isNotEmpty;
+    final hasQrCode = (qrDescription != null && qrDescription!.isNotEmpty) ||
+        (qrImageUrl != null && qrImageUrl!.isNotEmpty);
     // Prefer extracted phone number, fallback to personNum
     final phoneNumber = extractedPhoneNumber ?? (personNum?.toString());
     final hasWhatsApp = phoneNumber != null && phoneNumber.isNotEmpty;
@@ -57,7 +60,11 @@ class ConnectShareSectionWidget extends StatelessWidget {
             ),
           ),
           SizedBox(height: 16),
-          if (hasQrCode) QrCodeWidget(qrData: qrDescription!),
+          if (hasQrCode)
+            QrCodeWidget(
+              qrData: qrDescription,
+              qrImageUrl: qrImageUrl,
+            ),
           if (hasWhatsApp)
             WhatsAppButtonWidget(
               onPressed: () => onWhatsAppPressed(phoneNumber),

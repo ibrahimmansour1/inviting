@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../services/language_service.dart';
 
@@ -37,6 +36,7 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
 
   File? _selectedFlagFile;
   File? _selectedAudioFile;
+  File? _selectedQrImageFile;
   final List<Map<String, dynamic>> _subAudios =
       []; // {file: File, title: TextEditingController}
   final List<File> _selectedBookFiles = [];
@@ -78,10 +78,14 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
 
   Future<void> _pickFlagImage() async {
     try {
-      final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
-      if (picked == null) return;
+      // Use file picker to support all image formats
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType
+            .image, // Accepts all image formats (jpg, jpeg, png, gif, bmp, webp, etc.)
+      );
+      if (result == null || result.files.single.path == null) return;
 
-      final file = File(picked.path);
+      final file = File(result.files.single.path!);
       setState(() {
         _selectedFlagFile = file;
       });
@@ -89,7 +93,7 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Flag image selected: ${picked.name}'),
+            content: Text('Flag image selected: ${result.files.single.name}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -240,6 +244,38 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
     }
   }
 
+  Future<void> _pickQrImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final file = File(result.files.single.path!);
+      setState(() {
+        _selectedQrImageFile = file;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('QR image selected: ${result.files.single.name}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting QR image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _addYouTubeVideo() {
     final controller = TextEditingController();
     showDialog(
@@ -339,6 +375,10 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
         nativeName: _nativeNameController.text.trim(),
         flagFile: _selectedFlagFile!,
         audioFile: _selectedAudioFile!,
+        qrLink: _qrLinkController.text.trim().isNotEmpty
+            ? _qrLinkController.text.trim()
+            : null,
+        qrImageFile: _selectedQrImageFile,
       );
 
       if (mounted) {
@@ -630,15 +670,79 @@ class _AddLanguageScreenState extends State<AddLanguageScreen> {
                             maxLines: 3,
                           ),
                           const SizedBox(height: 16),
+                          // QR Code Section - Choose between Link or Image
+                          Text(
+                            'QR Code (Choose one):',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                              color: Colors.purple.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
                           TextFormField(
                             controller: _qrLinkController,
                             decoration: const InputDecoration(
                               labelText: 'QR Code Link',
                               hintText: 'URL that will be converted to QR code',
-                              prefixIcon: Icon(Icons.qr_code),
+                              prefixIcon: Icon(Icons.link),
                             ),
                             keyboardType: TextInputType.url,
+                            enabled: _selectedQrImageFile == null,
                           ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'OR',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _buildFileSelectionCard(
+                            title: 'QR Code Image',
+                            subtitle: _selectedQrImageFile != null
+                                ? '✓ QR image selected'
+                                : 'Upload pre-generated QR code image',
+                            icon: Icons.qr_code_2,
+                            isSelected: _selectedQrImageFile != null,
+                            onTap: _pickQrImage,
+                            color: Colors.purple,
+                          ),
+                          if (_selectedQrImageFile != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.check_circle,
+                                      color: Colors.green, size: 16),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      _selectedQrImageFile!.path
+                                          .split('/')
+                                          .last,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.close, size: 18),
+                                    onPressed: () {
+                                      setState(() {
+                                        _selectedQrImageFile = null;
+                                      });
+                                    },
+                                    color: Colors.red,
+                                    tooltip: 'Remove QR image',
+                                  ),
+                                ],
+                              ),
+                            ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _whatsappController,

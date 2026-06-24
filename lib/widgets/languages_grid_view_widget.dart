@@ -14,6 +14,8 @@ class LanguagesGridViewWidget extends StatelessWidget {
     required this.allLanguages,
     required this.isOnline,
     required this.onRetryLoad,
+    this.isAdminMode = false,
+    this.onLanguageDeleted,
   }) : _animationController = animationController;
 
   final List<Language> filteredLanguages;
@@ -23,6 +25,8 @@ class LanguagesGridViewWidget extends StatelessWidget {
   final TextEditingController searchController;
   final AnimationController _animationController;
   final LanguageService languageService;
+  final bool isAdminMode;
+  final VoidCallback? onLanguageDeleted;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +48,8 @@ class LanguagesGridViewWidget extends StatelessWidget {
                   animationController: _animationController,
                   filteredLanguages: filteredLanguages,
                   languageService: languageService,
+                  isAdminMode: isAdminMode,
+                  onLanguageDeleted: onLanguageDeleted,
                 );
               },
             ),

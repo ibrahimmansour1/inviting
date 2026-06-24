@@ -10,6 +10,8 @@ class LanguageGridViewItemWidget extends StatefulWidget {
   final AnimationController animationController;
   final List<Language> filteredLanguages;
   final LanguageService languageService;
+  final bool isAdminMode;
+  final VoidCallback? onLanguageDeleted;
 
   const LanguageGridViewItemWidget({
     super.key,
@@ -17,6 +19,8 @@ class LanguageGridViewItemWidget extends StatefulWidget {
     required this.animationController,
     required this.filteredLanguages,
     required this.languageService,
+    this.isAdminMode = false,
+    this.onLanguageDeleted,
   });
 
   @override
@@ -27,6 +31,69 @@ class LanguageGridViewItemWidget extends StatefulWidget {
 class _LanguageGridViewItemWidgetState
     extends State<LanguageGridViewItemWidget> {
   int _refreshKey = 0;
+
+  Future<void> _deleteLanguage() async {
+    final language = widget.filteredLanguages[widget.index];
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Language'),
+        content: Text(
+          'Are you sure you want to delete "${language.name}"?\n\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await widget.languageService.deleteLanguage(language.id!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"${language.name}" deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        widget.onLanguageDeleted?.call();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting language: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _editLanguage() async {
+    // TODO: Navigate to edit screen
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Edit functionality coming soon'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +136,9 @@ class _LanguageGridViewItemWidgetState
             '${widget.filteredLanguages[widget.index].id}_$_refreshKey'),
         language: widget.filteredLanguages[widget.index],
         languageService: widget.languageService,
+        isAdminMode: widget.isAdminMode,
+        onEdit: widget.isAdminMode ? _editLanguage : null,
+        onDelete: widget.isAdminMode ? _deleteLanguage : null,
         onTap: () async {
           await Navigator.push(
             context,
