@@ -86,8 +86,8 @@ final class SupabaseLanguageService {
         final audioUrl = await _supabase.uploadAdditionalSound(name, file);
         await _supabase.client.from('additional_sounds').insert({
           'language_id': languageId,
-          'title': title,
-          'audio_url': audioUrl,
+          'name': title,
+          'file_url': audioUrl,
         });
       }
     }
@@ -108,9 +108,15 @@ final class SupabaseLanguageService {
     // Insert YouTube videos
     if (youtubeVideoUrls != null && youtubeVideoUrls.isNotEmpty) {
       for (var url in youtubeVideoUrls) {
+        // Extract video ID from URL for use as title fallback
+        final uri = Uri.tryParse(url);
+        final videoId = uri?.queryParameters['v'] ??
+            uri?.pathSegments.lastOrNull ??
+            'YouTube Video';
         await _supabase.client.from('videos').insert({
           'language_id': languageId,
           'video_url': url,
+          'title': videoId,
         });
       }
     }

@@ -97,8 +97,14 @@ class _LanguageGridViewItemWidgetState
       ),
     );
 
-    // If language was updated, trigger refresh
+    // If language was updated, clear image cache and trigger refresh
     if (result == true && mounted) {
+      // Clear the cached flag image so the new one loads immediately
+      imageCache.clear();
+      imageCache.clearLiveImages();
+      setState(() {
+        _refreshKey++;
+      });
       widget.onLanguageDeleted?.call();
     }
   }
